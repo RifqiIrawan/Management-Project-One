@@ -25,6 +25,8 @@ type ProjectRow struct {
 	MyRole      string
 	IsFavorite  bool
 	MemberCount int
+	TaskCount   int
+	DoneCount   int
 }
 
 type MemberPreviewRow struct {
@@ -38,7 +40,9 @@ type MemberPreviewRow struct {
 const projectSelect = `
 SELECT p.id, p.name, p."key", p.description, p.color, p.icon, p.owner_id, p.archived_at, p.created_at,
        pm.role AS my_role, pm.is_favorite,
-       (SELECT COUNT(*) FROM project_members x WHERE x.project_id = p.id) AS member_count
+       (SELECT COUNT(*) FROM project_members x WHERE x.project_id = p.id) AS member_count,
+       (SELECT COUNT(*) FROM tasks tk WHERE tk.project_id = p.id) AS task_count,
+       (SELECT COUNT(*) FROM tasks tk WHERE tk.project_id = p.id AND tk.status = 'done') AS done_count
 FROM projects p
 JOIN project_members pm ON pm.project_id = p.id AND pm.user_id = ?`
 

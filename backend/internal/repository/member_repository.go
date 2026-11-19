@@ -113,6 +113,16 @@ func (r *MemberRepository) Remove(ctx context.Context, projectID, userID string)
 	return nil
 }
 
+// UnassignTasks mengosongkan assignee semua tugas anggota di proyek ini (saat ia dikeluarkan/keluar).
+func (r *MemberRepository) UnassignTasks(ctx context.Context, projectID, userID string) error {
+	err := r.db.WithContext(ctx).
+		Exec(`UPDATE tasks SET assignee_id = NULL, updated_at = now() WHERE project_id = ? AND assignee_id = ?`, projectID, userID).Error
+	if err != nil {
+		return fmt.Errorf("unassign tasks: %w", err)
+	}
+	return nil
+}
+
 // ToggleFavorite membalik status favorit dalam satu statement atomik dan mengembalikan nilai barunya.
 func (r *MemberRepository) ToggleFavorite(ctx context.Context, projectID, userID string) (bool, error) {
 	var out struct{ IsFavorite bool }

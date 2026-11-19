@@ -60,12 +60,13 @@ powershell -File backend/tests/e2e_race_owner.ps1    # uji race condition (butuh
 - E2E `e2e_projects.ps1`: buat proyek (key uppercase, duplikat 409, validasi 400, emoji utuh), daftar/cari/favorit, **non-anggota 404 di semua endpoint**, **member 403** pada edit/arsip/hapus/undang/ubah role/keluarkan, edit & arsip, promosi/demosi, owner terakhir (400), keluar sendiri, hapus dengan konfirmasi nama, pencarian user.
 - E2E `e2e_race_owner.ps1`: transaksi psql menahan kunci agar dua request saling-menurunkan benar-benar tumpang-tindih. Hasil dengan `FOR UPDATE`: selalu `200,400`, owner tersisa 1. **Uji mutasi**: dengan `FOR UPDATE` sengaja dicopot, 3 dari 3 ronde menghasilkan proyek tanpa owner (`200,200`), sehingga terbukti kunci inilah yang mencegah bug dan tes ini peka terhadapnya.
 
-## Belum dikerjakan (bergantung fitur lain)
-- **Statistik tugas & progress %** (jumlah tugas, done/total) di kartu/detail proyek: butuh tabel `tasks` → fitur 04.
-- **Tugas milik anggota yang dikeluarkan menjadi unassigned**: ada `TODO(fitur 04)` di `MemberService.Remove`, harus dijalankan di transaksi yang sama.
-- **Riwayat aktivitas** (`GET /projects/:id/activities`) → fitur 06.
-- Proyek terarsip masih bisa diedit/diubah anggotanya (belum dikunci read-only).
+## Dilunasi di fitur 04
+- **Statistik tugas & progress %**: respons proyek kini memuat 	ask_count, done_count, progress.
+- **Tugas anggota yang dikeluarkan menjadi unassigned**: dikerjakan di transaksi yang sama dengan penghapusan anggota.
+- Proyek terarsip kini read-only untuk **tugas** (buat/edit/pindah/hapus ditolak). Pengaturan proyek & anggota pada proyek terarsip masih boleh diubah.
 
+## Belum dikerjakan
+- **Riwayat aktivitas proyek** (GET /projects/:id/activities) → fitur 06.
 ## Catatan
 - Port: backend `6990`, frontend `6969`.
 - Rate limit pencarian user di memori (per proses), sama seperti auth.

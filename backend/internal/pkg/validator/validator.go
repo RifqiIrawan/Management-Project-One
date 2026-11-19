@@ -30,6 +30,14 @@ var labels = map[string]string{
 	"role":             "Role",
 	"archived":         "Status arsip",
 	"confirm_name":     "Konfirmasi nama",
+	"title":            "Judul",
+	"status":           "Status",
+	"priority":         "Prioritas",
+	"assignee_id":      "Assignee",
+	"start_date":       "Tanggal mulai",
+	"due_date":         "Deadline",
+	"labels":           "Label",
+	"position":         "Posisi",
 }
 
 var uuidRe = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)

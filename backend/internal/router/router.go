@@ -39,6 +39,8 @@ func New(cfg *config.Config, db *gorm.DB) (*gin.Engine, error) {
 	userSvc := service.NewUserService(userRepo)
 	projectSvc := service.NewProjectService(projectRepo, memberRepo)
 	memberSvc := service.NewMemberService(projectRepo, memberRepo, userRepo)
+	taskSvc := service.NewTaskService(projectRepo, repository.NewTaskRepository(db), memberRepo)
+	taskH := handler.NewTaskHandler(taskSvc)
 	authH := handler.NewAuthHandler(authSvc, cfg)
 	userH := handler.NewUserHandler(userSvc)
 	projectH := handler.NewProjectHandler(projectSvc)
@@ -92,6 +94,14 @@ func New(cfg *config.Config, db *gorm.DB) (*gin.Engine, error) {
 	projects.POST("/:projectId/members", memberH.Add)
 	projects.PATCH("/:projectId/members/:userId", memberH.UpdateRole)
 	projects.DELETE("/:projectId/members/:userId", memberH.Remove)
+	projects.GET("/:projectId/tasks", taskH.List)
+	projects.POST("/:projectId/tasks", taskH.Create)
+
+	tasks := private.Group("/tasks")
+	tasks.GET("/:taskId", taskH.Get)
+	tasks.PATCH("/:taskId", taskH.Update)
+	tasks.PATCH("/:taskId/move", taskH.Move)
+	tasks.DELETE("/:taskId", taskH.Delete)
 
 	return r, nil
 }

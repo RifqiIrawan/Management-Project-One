@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"math"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -154,7 +155,16 @@ func toProjectResponse(r *repository.ProjectRow) *dto.ProjectResponse {
 		ID: r.ID, Name: r.Name, Key: r.Key, Description: r.Description, Color: r.Color, Icon: r.Icon,
 		OwnerID: r.OwnerID, ArchivedAt: r.ArchivedAt, CreatedAt: r.CreatedAt,
 		MyRole: r.MyRole, IsFavorite: r.IsFavorite, MemberCount: r.MemberCount,
+		TaskCount: r.TaskCount, DoneCount: r.DoneCount, Progress: progressPercent(r.DoneCount, r.TaskCount),
 	}
+}
+
+// progressPercent = done / total x 100, dibulatkan; 0 bila belum ada tugas.
+func progressPercent(done, total int) int {
+	if total <= 0 {
+		return 0
+	}
+	return int(math.Round(float64(done) * 100 / float64(total)))
 }
 
 // nilIfBlank mengubah string kosong menjadi NULL di database.

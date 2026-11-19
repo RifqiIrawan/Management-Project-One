@@ -121,7 +121,10 @@ func (s *MemberService) Remove(ctx context.Context, actorID, projectID, targetID
 		if isLastOwner(owners, target, model.RoleMember) {
 			return errLastOwner
 		}
-		// TODO(fitur 04): di transaksi yang sama, set assignee_id = NULL pada tugas milik anggota ini.
+		// Tugas yang di-assign ke anggota ini menjadi unassigned (transaksi yang sama).
+		if err := tx.UnassignTasks(ctx, projectID, targetID); err != nil {
+			return err
+		}
 		return tx.Remove(ctx, projectID, targetID)
 	})
 }

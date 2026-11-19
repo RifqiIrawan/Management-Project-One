@@ -55,6 +55,9 @@ type ProjectResponse struct {
 	MyRole         string          `json:"my_role"`
 	IsFavorite     bool            `json:"is_favorite"`
 	MemberCount    int             `json:"member_count"`
+	TaskCount      int             `json:"task_count"`
+	DoneCount      int             `json:"done_count"`
+	Progress       int             `json:"progress"` // persen tugas done dari total (0 bila belum ada tugas)
 	MembersPreview []MemberPreview `json:"members_preview,omitempty"`
 }
 
