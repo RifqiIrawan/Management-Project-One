@@ -27,6 +27,11 @@ func OK(c *gin.Context, status int, data any) {
 	c.JSON(status, Body{Success: true, Data: data})
 }
 
+// OKMeta seperti OK, ditambah "meta" (mis. info pagination).
+func OKMeta(c *gin.Context, status int, data, meta any) {
+	c.JSON(status, Body{Success: true, Data: data, Meta: meta})
+}
+
 // Err mengubah error menjadi response standar. Error tak dikenal dicatat di
 // server dan dikirim sebagai 500 tanpa detail internal.
 func Err(c *gin.Context, err error) {

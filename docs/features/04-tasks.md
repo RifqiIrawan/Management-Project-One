@@ -24,7 +24,7 @@ Semua butuh `Authorization: Bearer <access_token>` dan keanggotaan proyek (non-a
 
 | Method | Path | Keterangan |
 |---|---|---|
-| GET | `/api/v1/projects/:projectId/tasks` | Semua tugas proyek, urut per kolom lalu posisi. `?view=board` → `{todo, in_progress, in_review, done}` (kolom kosong = `[]`) |
+| GET | `/api/v1/projects/:projectId/tasks` | Daftar tugas proyek. `?view=board` → `{todo, in_progress, in_review, done}` urut Kanban (kolom kosong = `[]`). Filter, pencarian, sort, dan pagination: lihat [fitur 05](05-search-filter.md) |
 | POST | `/api/v1/projects/:projectId/tasks` | Buat tugas. Hanya `title` yang wajib |
 | GET | `/api/v1/tasks/:taskId` | Detail tugas |
 | PATCH | `/api/v1/tasks/:taskId` | Edit sebagian field; `null` mengosongkan `description`, `assignee_id`, `start_date`, `due_date` |
@@ -75,7 +75,6 @@ curl -X PATCH localhost:6990/api/v1/tasks/<taskId>/move -H "Authorization: Beare
 - Constraint DB diuji langsung (key huruf kecil, role, status, prioritas, deadline < mulai, 6 label, nomor ganda) dan migrasi up → down → up.
 
 ## Batasan & rencana
-- Daftar tugas belum punya **filter, pencarian, sort, pagination** → fitur 05 (indeks `pg_trgm` untuk judul sudah dibuat).
+- ~~Filter, pencarian, sort, pagination~~ → selesai di [fitur 05](05-search-filter.md).
 - `comment_count` pada kartu menunggu fitur 06 (komentar).
 - Posisi desimal bisa kehabisan presisi setelah ±50 penyisipan berturut-turut di antara dua kartu yang sama; belum ada rebalancing otomatis (aman untuk pemakaian wajar).
-- Daftar tugas belum dipaginasi: proyek dengan ribuan tugas akan mengembalikan semuanya sampai fitur 05.

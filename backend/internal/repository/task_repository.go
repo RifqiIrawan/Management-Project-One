@@ -35,6 +35,9 @@ type TaskRow struct {
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
 	ProjectArchived bool
+	ProjectName     string
+	ProjectColor    string
+	ProjectKey      string
 	MyRole          string // hanya terisi oleh FindForUser
 }
 
@@ -44,7 +47,8 @@ t.status, t.priority, COALESCE(to_json(t.labels)::text, '[]') AS labels, t.posit
 t.assignee_id, a.name AS assignee_name, a.avatar_color AS assignee_color,
 t.created_by, c.name AS creator_name,
 to_char(t.start_date, 'YYYY-MM-DD') AS start_date, to_char(t.due_date, 'YYYY-MM-DD') AS due_date,
-t.completed_at, t.created_at, t.updated_at, (p.archived_at IS NOT NULL) AS project_archived`
+t.completed_at, t.created_at, t.updated_at, (p.archived_at IS NOT NULL) AS project_archived,
+p.name AS project_name, p.color AS project_color, p."key" AS project_key`
 
 const taskFrom = `
 FROM tasks t
@@ -139,20 +143,6 @@ WHERE t.id = ?`, userID, taskID).Scan(&row)
 		return nil, apperror.ErrNotFound
 	}
 	return &row, nil
-}
-
-// ListByProject: semua tugas proyek, urut per kolom Kanban lalu posisi.
-func (r *TaskRepository) ListByProject(ctx context.Context, projectID string) ([]TaskRow, error) {
-	rows := []TaskRow{}
-	err := r.db.WithContext(ctx).Raw(
-		`SELECT `+taskColumns+taskFrom+`
-WHERE t.project_id = ?
-ORDER BY CASE t.status WHEN 'todo' THEN 1 WHEN 'in_progress' THEN 2 WHEN 'in_review' THEN 3 ELSE 4 END,
-         t.position, t.created_at`, projectID).Scan(&rows).Error
-	if err != nil {
-		return nil, fmt.Errorf("list tasks: %w", err)
-	}
-	return rows, nil
 }
 
 func (r *TaskRepository) Update(ctx context.Context, taskID string, fields map[string]any) error {

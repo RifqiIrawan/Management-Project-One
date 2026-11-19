@@ -20,14 +20,40 @@ func (h *TaskHandler) List(c *gin.Context) {
 	if !ok {
 		return
 	}
-	out, err := h.svc.List(c.Request.Context(), middleware.CurrentUser(c).ID, projectID, c.Query("view") == "board")
+	out, meta, err := h.svc.List(c.Request.Context(), middleware.CurrentUser(c).ID, projectID, listParams(c))
 	if err != nil {
 		response.Err(c, err)
 		return
 	}
-	response.OK(c, http.StatusOK, out)
+	respondList(c, out, meta)
 }
 
+// MyTasks: GET /me/tasks, tugas yang di-assign ke saya lintas proyek.
+func (h *TaskHandler) MyTasks(c *gin.Context) {
+	out, meta, err := h.svc.MyTasks(c.Request.Context(), middleware.CurrentUser(c).ID, listParams(c))
+	if err != nil {
+		response.Err(c, err)
+		return
+	}
+	respondList(c, out, meta)
+}
+
+func listParams(c *gin.Context) dto.TaskListParams {
+	return dto.TaskListParams{
+		Q: c.Query("q"), Status: c.Query("status"), Priority: c.Query("priority"),
+		Assignee: c.Query("assignee"), Due: c.Query("due"), Sort: c.Query("sort"),
+		Page: c.Query("page"), PerPage: c.Query("per_page"),
+		View: c.Query("view"), Group: c.Query("group"), IncludeDone: c.Query("include_done"),
+	}
+}
+
+func respondList(c *gin.Context, data any, meta *dto.PageMeta) {
+	if meta == nil {
+		response.OK(c, http.StatusOK, data)
+		return
+	}
+	response.OKMeta(c, http.StatusOK, data, meta)
+}
 func (h *TaskHandler) Create(c *gin.Context) {
 	projectID, ok := uuidParam(c, "projectId")
 	if !ok {

@@ -39,7 +39,7 @@ func New(cfg *config.Config, db *gorm.DB) (*gin.Engine, error) {
 	userSvc := service.NewUserService(userRepo)
 	projectSvc := service.NewProjectService(projectRepo, memberRepo)
 	memberSvc := service.NewMemberService(projectRepo, memberRepo, userRepo)
-	taskSvc := service.NewTaskService(projectRepo, repository.NewTaskRepository(db), memberRepo)
+	taskSvc := service.NewTaskService(projectRepo, repository.NewTaskRepository(db), memberRepo, cfg.Timezone)
 	taskH := handler.NewTaskHandler(taskSvc)
 	authH := handler.NewAuthHandler(authSvc, cfg)
 	userH := handler.NewUserHandler(userSvc)
@@ -80,6 +80,7 @@ func New(cfg *config.Config, db *gorm.DB) (*gin.Engine, error) {
 	private.GET("/me", userH.Me)
 	private.PATCH("/me", userH.UpdateMe)
 	private.PATCH("/me/password", authH.ChangePassword)
+	private.GET("/me/tasks", taskH.MyTasks)
 	private.GET("/users/search", middleware.NewIPLimiter(30).Middleware(), userH.Search)
 
 	projects := private.Group("/projects")

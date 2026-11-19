@@ -17,7 +17,7 @@ Legenda: ✅ selesai · 🚧 sedang dikerjakan · ⏳ belum dimulai
 | 2 | Auth | Register, login, JWT access + refresh, middleware, profil, ganti password | ✅ | [02-auth](features/02-auth.md) |
 | 3 | Proyek | CRUD proyek, anggota, hak akses (RBAC) | ✅ | [03-projects](features/03-projects.md) |
 | 4 | Tugas | CRUD tugas, nomor `MPO-x`, status Kanban, riwayat aktivitas (pencatatan) | ✅ | [04-tasks](features/04-tasks.md) |
-| 5 | Pencarian | List, filter, pencarian, Tugas Saya | ⏳ | — |
+| 5 | Pencarian | List, filter, pencarian, sort, pagination, Tugas Saya | ✅ | [05-search-filter](features/05-search-filter.md) |
 | 6 | Kolaborasi | Komentar & riwayat aktivitas | ⏳ | — |
 | 7 | Dashboard | Statistik dashboard | ⏳ | — |
 | 8 | Rilis | Swagger, testing, Docker produksi | ⏳ | — |

@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	_ "time/tzdata" // zona waktu tertanam di binary (Windows tidak punya database tz bawaan)
 
 	"github.com/joho/godotenv"
 )
@@ -28,6 +29,7 @@ type Config struct {
 	RefreshTTL   time.Duration
 	CookieSecure bool
 	BcryptCost   int
+	Timezone     *time.Location // acuan "hari ini" / "minggu ini" untuk deadline
 }
 
 // Load membaca .env (jika ada) lalu environment variable.
@@ -70,6 +72,9 @@ func Load() (*Config, error) {
 	}
 	if c.BcryptCost, err = strconv.Atoi(get("BCRYPT_COST", "12")); err != nil || c.BcryptCost < 10 || c.BcryptCost > 14 {
 		return nil, fmt.Errorf("BCRYPT_COST harus angka 10-14")
+	}
+	if c.Timezone, err = time.LoadLocation(get("APP_TIMEZONE", "Asia/Jakarta")); err != nil {
+		return nil, fmt.Errorf("APP_TIMEZONE tidak dikenal (contoh: Asia/Jakarta): %w", err)
 	}
 	if c.AppEnv == "production" && !c.CookieSecure {
 		return nil, fmt.Errorf("COOKIE_SECURE harus true saat APP_ENV=production")

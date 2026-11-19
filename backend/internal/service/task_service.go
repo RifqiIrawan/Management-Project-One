@@ -31,10 +31,12 @@ type TaskService struct {
 	projectAccess
 	tasks   *repository.TaskRepository
 	members *repository.MemberRepository
+	loc     *time.Location // zona waktu acuan deadline
+	now     func() time.Time
 }
 
-func NewTaskService(projects *repository.ProjectRepository, tasks *repository.TaskRepository, members *repository.MemberRepository) *TaskService {
-	return &TaskService{projectAccess: projectAccess{projects: projects}, tasks: tasks, members: members}
+func NewTaskService(projects *repository.ProjectRepository, tasks *repository.TaskRepository, members *repository.MemberRepository, loc *time.Location) *TaskService {
+	return &TaskService{projectAccess: projectAccess{projects: projects}, tasks: tasks, members: members, loc: loc, now: time.Now}
 }
 
 // Create membuat tugas baru di paling atas kolomnya dengan nomor berurutan (MPO-1, MPO-2, ...).
@@ -114,32 +116,102 @@ func (s *TaskService) Create(ctx context.Context, userID, projectID string, req 
 	return s.get(ctx, userID, id)
 }
 
-// List mengembalikan semua tugas proyek; board=true mengelompokkan per status (kolom Kanban).
-func (s *TaskService) List(ctx context.Context, userID, projectID string, board bool) (any, error) {
+// List: daftar tugas proyek dengan filter, pencarian, sort, dan pagination.
+// view=board mengembalikan semua tugas yang cocok per kolom Kanban (tanpa pagination).
+// Mengembalikan data, meta (nil untuk board), dan error.
+func (s *TaskService) List(ctx context.Context, userID, projectID string, p dto.TaskListParams) (any, *dto.PageMeta, error) {
 	if _, err := s.member(ctx, userID, projectID); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	rows, err := s.tasks.ListByProject(ctx, projectID)
+	today, weekEnd := dateWindow(s.now(), s.loc)
+	q, err := parseTaskQuery(p, userID, today, weekEnd)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	if !board {
-		out := make([]dto.TaskResponse, len(rows))
-		for i := range rows {
-			out[i] = *toTaskResponse(&rows[i])
+	q.filter.ProjectID = projectID
+
+	if q.board {
+		rows, err := s.tasks.Search(ctx, q.filter, repository.SearchOptions{Kanban: true})
+		if err != nil {
+			return nil, nil, err
 		}
-		return out, nil
+		cols := make(map[string][]dto.TaskResponse, len(model.TaskStatuses))
+		for _, st := range model.TaskStatuses {
+			cols[st] = []dto.TaskResponse{}
+		}
+		for i := range rows {
+			cols[rows[i].Status] = append(cols[rows[i].Status], *toTaskResponse(&rows[i]))
+		}
+		return cols, nil, nil
 	}
-	cols := make(map[string][]dto.TaskResponse, len(model.TaskStatuses))
-	for _, st := range model.TaskStatuses {
-		cols[st] = []dto.TaskResponse{}
-	}
-	for i := range rows {
-		cols[rows[i].Status] = append(cols[rows[i].Status], *toTaskResponse(&rows[i]))
-	}
-	return cols, nil
+	return s.page(ctx, q, q.sorts)
 }
 
+// MyTasks: tugas yang di-assign ke saya, lintas proyek (proyek terarsip & tugas done dikecualikan
+// secara default). group=due mengelompokkan menurut deadline.
+func (s *TaskService) MyTasks(ctx context.Context, userID string, p dto.TaskListParams) (any, *dto.PageMeta, error) {
+	today, weekEnd := dateWindow(s.now(), s.loc)
+	q, err := parseTaskQuery(p, userID, today, weekEnd)
+	if err != nil {
+		return nil, nil, err
+	}
+	f := &q.filter
+	f.AssigneeIDs, f.AssigneeNone = []string{userID}, false // selalu milik saya; parameter assignee diabaikan
+	f.MemberUserID = userID
+	f.ExcludeArchived = true
+	f.ExcludeDone = !q.includeDone && len(f.Statuses) == 0
+	sorts := q.sorts
+	if len(sorts) == 0 {
+		sorts = defaultMySorts
+	}
+
+	if !q.group {
+		return s.page(ctx, q, sorts)
+	}
+	rows, err := s.tasks.Search(ctx, *f, repository.SearchOptions{Sorts: sorts})
+	if err != nil {
+		return nil, nil, err
+	}
+	g := dto.MyTasksGrouped{
+		Overdue: []dto.TaskResponse{}, Today: []dto.TaskResponse{}, ThisWeek: []dto.TaskResponse{},
+		Later: []dto.TaskResponse{}, NoDeadline: []dto.TaskResponse{},
+	}
+	for i := range rows {
+		resp := *toTaskResponse(&rows[i])
+		switch dueGroup(rows[i].DueDate, today, weekEnd) {
+		case "overdue":
+			g.Overdue = append(g.Overdue, resp)
+		case "today":
+			g.Today = append(g.Today, resp)
+		case "this_week":
+			g.ThisWeek = append(g.ThisWeek, resp)
+		case "later":
+			g.Later = append(g.Later, resp)
+		default:
+			g.NoDeadline = append(g.NoDeadline, resp)
+		}
+	}
+	return g, nil, nil
+}
+
+// page menjalankan pencarian berpaginasi dan menyusun meta.
+func (s *TaskService) page(ctx context.Context, q *listQuery, sorts []repository.TaskSort) (any, *dto.PageMeta, error) {
+	total, err := s.tasks.Count(ctx, q.filter)
+	if err != nil {
+		return nil, nil, err
+	}
+	rows, err := s.tasks.Search(ctx, q.filter, repository.SearchOptions{
+		Sorts: sorts, Limit: q.perPage, Offset: (q.page - 1) * q.perPage,
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	out := make([]dto.TaskResponse, len(rows))
+	for i := range rows {
+		out[i] = *toTaskResponse(&rows[i])
+	}
+	return out, pageMeta(q.page, q.perPage, total), nil
+}
 func (s *TaskService) Get(ctx context.Context, userID, taskID string) (*dto.TaskResponse, error) {
 	return s.get(ctx, userID, taskID)
 }
@@ -389,6 +461,7 @@ func (s *TaskService) logChanges(ctx context.Context, tx *repository.TaskReposit
 func toTaskResponse(r *repository.TaskRow) *dto.TaskResponse {
 	resp := &dto.TaskResponse{
 		ID: r.ID, Code: r.Code, Number: r.Number, ProjectID: r.ProjectID, Title: r.Title,
+		Project:     &dto.ProjectRef{ID: r.ProjectID, Name: r.ProjectName, Key: r.ProjectKey, Color: r.ProjectColor},
 		Description: r.Description, Status: r.Status, Priority: r.Priority, Labels: r.Labels, Position: r.Position,
 		CreatedBy: dto.UserRef{ID: r.CreatedBy, Name: r.CreatorName},
 		StartDate: r.StartDate, DueDate: r.DueDate, CompletedAt: r.CompletedAt,

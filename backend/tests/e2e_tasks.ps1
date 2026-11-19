@@ -98,13 +98,13 @@ Check 'UUID tugas tak ada -> 404' ((Call GET "/tasks/$none" $null $A.Token).Stat
 
 # --- Daftar & board ---
 $r = Call GET "/projects/$P/tasks" $null $B.Token
-Check 'member melihat daftar (urut per kolom lalu posisi)' ($r.Status -eq 200 -and $r.Data.Count -eq 5 -and $r.Data[0].status -eq 'todo' -and $r.Data[-1].status -eq 'done')
+Check 'member melihat daftar berpaginasi (default terbaru dulu, ada meta)' ($r.Status -eq 200 -and $r.Data.Count -eq 5 -and $r.Json.meta.total -eq 5 -and $r.Json.meta.per_page -eq 20 -and $r.Data[0].id -eq $T5.id)
 $r = Call GET "/projects/$P/tasks?view=board" $null $B.Token
 $cols = @($r.Data.PSObject.Properties.Name)
 Check 'view=board: 4 kolom Kanban' (($cols -contains 'todo') -and ($cols -contains 'in_progress') -and ($cols -contains 'in_review') -and ($cols -contains 'done'))
 Check 'view=board: kolom kosong berupa [] dan urutan posisi benar' ($r.Json.data.in_review -is [array] -and @($r.Data.in_review).Count -eq 0 -and $r.Data.todo[0].id -eq $T5.id -and $r.Data.todo[-1].id -eq $T1.id)
 $g = Call GET "/tasks/$($T1.id)" $null $B.Token
-Check 'detail tugas oleh member -> 200' ($g.Status -eq 200 -and $g.Data.id -eq $T1.id)
+Check 'detail tugas oleh member -> 200, memuat info proyek' ($g.Status -eq 200 -and $g.Data.id -eq $T1.id -and $g.Data.project.key -ceq $KEY -and $g.Data.project.name -eq 'Proyek Tugas')
 
 # --- Edit (PATCH) ---
 $r = Call PATCH "/tasks/$($T1.id)" @{ title = 'Judul baru'; priority = 'urgent'; labels = @('Design', 'design', 'UI') } $B.Token
@@ -156,7 +156,7 @@ $rb2 = Call POST "/projects/$P/tasks" @{ title = 'Buatan B lagi' } $B.Token
 Check 'owner hapus tugas buatan member -> 200' ((Call DELETE "/tasks/$($rb2.Data.id)" $null $A.Token).Status -eq 200)
 
 # --- Nomor tugas tidak bentrok saat pembuatan paralel ---
-$before = (Call GET "/projects/$P/tasks" $null $A.Token).Data.Count
+$before = (Call GET "/projects/$P/tasks?per_page=100" $null $A.Token).Data.Count
 $jobs = 1..8 | ForEach-Object {
   Start-Job -ArgumentList $Base, $P, $A.Token, $_ -ScriptBlock {
     param($base, $proj, $tok, $n)
@@ -173,10 +173,10 @@ Check '16 pembuatan paralel: semua sukses' ($ok.Count -eq 16)
 Check '16 pembuatan paralel: nomor unik (tidak ada bentrok)' (@($ok | Sort-Object -Unique).Count -eq 16)
 $sorted = @($ok | Sort-Object)
 Check '16 pembuatan paralel: nomor berurutan tanpa celah' (($sorted[-1] - $sorted[0]) -eq 15)
-Check 'jumlah tugas di database bertambah 16' ((Call GET "/projects/$P/tasks" $null $A.Token).Data.Count -eq ($before + 16))
+Check 'jumlah tugas di database bertambah 16' ((Call GET "/projects/$P/tasks?per_page=100" $null $A.Token).Data.Count -eq ($before + 16))
 
 # --- Statistik proyek ---
-$all = (Call GET "/projects/$P/tasks" $null $A.Token).Data
+$all = (Call GET "/projects/$P/tasks?per_page=100" $null $A.Token).Data
 $total = $all.Count; $done = @($all | Where-Object { $_.status -eq 'done' }).Count
 $pr = (Call GET "/projects/$P" $null $A.Token).Data
 Check 'proyek: task_count & done_count sesuai' ($pr.task_count -eq $total -and $pr.done_count -eq $done)
@@ -185,10 +185,10 @@ $lst = (Call GET '/projects' $null $A.Token).Data | Where-Object { $_.id -eq $P 
 Check 'daftar proyek memuat task_count & progress' ($lst.task_count -eq $total -and $lst.progress -eq $pr.progress)
 
 # --- Anggota dikeluarkan -> tugasnya unassigned ---
-$mine = (Call GET "/projects/$P/tasks" $null $A.Token).Data | Where-Object { $_.assignee.id -eq $B.Id }
+$mine = (Call GET "/projects/$P/tasks?per_page=100" $null $A.Token).Data | Where-Object { $_.assignee.id -eq $B.Id }
 Check 'sebelum dikeluarkan: B punya tugas ter-assign' (@($mine).Count -ge 1)
 Check 'owner mengeluarkan B -> 200' ((Call DELETE "/projects/$P/members/$($B.Id)" $null $A.Token).Status -eq 200)
-$after = (Call GET "/projects/$P/tasks" $null $A.Token).Data
+$after = (Call GET "/projects/$P/tasks?per_page=100" $null $A.Token).Data
 Check 'setelah dikeluarkan: tidak ada tugas ter-assign ke B (unassigned)' (@($after | Where-Object { $_.assignee.id -eq $B.Id }).Count -eq 0 -and $after.Count -eq $total)
 Check 'mantan anggota tidak bisa lagi mengakses tugas -> 404' ((Call GET "/tasks/$($T3.id)" $null $B.Token).Status -eq 404)
 $null = Call POST "/projects/$P/members" @{ email = $B.Email } $A.Token
