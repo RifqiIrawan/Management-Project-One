@@ -52,12 +52,12 @@ Buat secret: `openssl rand -hex 32`. CORS frontend default `http://localhost:696
 ## Cara mencoba
 ```bash
 cd backend && go run ./cmd/api           # migrasi berjalan otomatis
-curl -i -X POST localhost:8080/api/v1/auth/register -H "Content-Type: application/json" \
+curl -i -X POST localhost:6990/api/v1/auth/register -H "Content-Type: application/json" \
   -d '{"name":"Budi","email":"budi@example.com","password":"Passw0rd1","confirm_password":"Passw0rd1"}'
-curl -i -c jar.txt -X POST localhost:8080/api/v1/auth/login -H "Content-Type: application/json" \
+curl -i -c jar.txt -X POST localhost:6990/api/v1/auth/login -H "Content-Type: application/json" \
   -d '{"email":"budi@example.com","password":"Passw0rd1"}'
-curl -b jar.txt -X POST localhost:8080/api/v1/auth/refresh
-curl localhost:8080/api/v1/me -H "Authorization: Bearer <access_token>"
+curl -b jar.txt -X POST localhost:6990/api/v1/auth/refresh
+curl localhost:6990/api/v1/me -H "Authorization: Bearer <access_token>"
 ```
 
 ## Testing

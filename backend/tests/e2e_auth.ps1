@@ -1,5 +1,5 @@
 ﻿# Jalankan server dulu (cd backend; go run ./cmd/api), lalu: powershell -File tests/e2e_auth.ps1
-$base = 'http://localhost:8080/api/v1'
+$base = 'http://localhost:6990/api/v1'
 $script:pass = 0; $script:fail = 0
 
 function Call($method, $path, $body = $null, $token = $null, $cookie = $null) {

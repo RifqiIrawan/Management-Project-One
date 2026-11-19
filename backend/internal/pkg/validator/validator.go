@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
+	"regexp"
 	"strings"
 	"unicode"
 
@@ -22,7 +23,19 @@ var labels = map[string]string{
 	"current_password": "Password lama",
 	"new_password":     "Password baru",
 	"avatar_color":     "Warna avatar",
+	"key":              "Key",
+	"description":      "Deskripsi",
+	"color":            "Warna",
+	"icon":             "Ikon",
+	"role":             "Role",
+	"archived":         "Status arsip",
+	"confirm_name":     "Konfirmasi nama",
 }
+
+var uuidRe = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
+
+// IsUUID memeriksa format UUID sebelum dipakai di query (mencegah error SQL 22P02).
+func IsUUID(s string) bool { return uuidRe.MatchString(s) }
 
 // Init membuat nama field di error mengikuti tag json (bukan nama struct).
 func Init() {
@@ -73,6 +86,10 @@ func message(fe validator.FieldError) string {
 		return fmt.Sprintf("maksimal %s karakter", fe.Param())
 	case "eqfield":
 		return "tidak sama"
+	case "alpha":
+		return "hanya boleh huruf A-Z"
+	case "oneof":
+		return "harus salah satu dari: " + strings.ReplaceAll(fe.Param(), " ", ", ")
 	case "hexcolor":
 		return "harus berupa kode hex, mis. #6366F1"
 	default:

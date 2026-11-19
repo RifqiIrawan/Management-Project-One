@@ -34,9 +34,15 @@ func New(cfg *config.Config, db *gorm.DB) (*gin.Engine, error) {
 	if err != nil {
 		return nil, fmt.Errorf("auth service: %w", err)
 	}
+	projectRepo := repository.NewProjectRepository(db)
+	memberRepo := repository.NewMemberRepository(db)
 	userSvc := service.NewUserService(userRepo)
+	projectSvc := service.NewProjectService(projectRepo, memberRepo)
+	memberSvc := service.NewMemberService(projectRepo, memberRepo, userRepo)
 	authH := handler.NewAuthHandler(authSvc, cfg)
 	userH := handler.NewUserHandler(userSvc)
+	projectH := handler.NewProjectHandler(projectSvc)
+	memberH := handler.NewMemberHandler(memberSvc)
 
 	r := gin.New()
 	_ = r.SetTrustedProxies(nil) // ClientIP = alamat koneksi asli (anti spoof X-Forwarded-For)
@@ -72,6 +78,20 @@ func New(cfg *config.Config, db *gorm.DB) (*gin.Engine, error) {
 	private.GET("/me", userH.Me)
 	private.PATCH("/me", userH.UpdateMe)
 	private.PATCH("/me/password", authH.ChangePassword)
+	private.GET("/users/search", middleware.NewIPLimiter(30).Middleware(), userH.Search)
+
+	projects := private.Group("/projects")
+	projects.GET("", projectH.List)
+	projects.POST("", projectH.Create)
+	projects.GET("/:projectId", projectH.Get)
+	projects.PATCH("/:projectId", projectH.Update)
+	projects.DELETE("/:projectId", projectH.Delete)
+	projects.POST("/:projectId/archive", projectH.Archive)
+	projects.POST("/:projectId/favorite", projectH.ToggleFavorite)
+	projects.GET("/:projectId/members", memberH.List)
+	projects.POST("/:projectId/members", memberH.Add)
+	projects.PATCH("/:projectId/members/:userId", memberH.UpdateRole)
+	projects.DELETE("/:projectId/members/:userId", memberH.Remove)
 
 	return r, nil
 }

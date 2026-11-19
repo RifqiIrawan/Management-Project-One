@@ -19,6 +19,15 @@ func (h *UserHandler) Me(c *gin.Context) {
 	response.OK(c, http.StatusOK, dto.NewUserResponse(middleware.CurrentUser(c)))
 }
 
+func (h *UserHandler) Search(c *gin.Context) {
+	users, err := h.svc.Search(c.Request.Context(), middleware.CurrentUser(c).ID, c.Query("email"))
+	if err != nil {
+		response.Err(c, err)
+		return
+	}
+	response.OK(c, http.StatusOK, users)
+}
+
 func (h *UserHandler) UpdateMe(c *gin.Context) {
 	var req dto.UpdateProfileRequest
 	if !bind(c, &req) {

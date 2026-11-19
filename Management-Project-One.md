@@ -1360,7 +1360,7 @@ export const PRIORITY_CONFIG: Record<TaskPriority, { label: string; color: strin
 **`backend/.env.example`**
 ```env
 APP_ENV=development
-APP_PORT=8080
+APP_PORT=6990
 FRONTEND_URL=http://localhost:6969
 
 DB_HOST=localhost
@@ -1381,7 +1381,7 @@ BCRYPT_COST=12
 
 **`frontend/.env.example`**
 ```env
-VITE_API_URL=http://localhost:8080/api/v1
+VITE_API_URL=http://localhost:6990/api/v1
 VITE_APP_NAME=Management-Project-One
 ```
 
@@ -1413,7 +1413,7 @@ services:
     environment:
       DB_HOST: db
     ports:
-      - "8080:8080"
+      - "6990:6990"
     depends_on:
       db:
         condition: service_healthy
@@ -1466,7 +1466,7 @@ cd backend
 cp .env.example .env
 go mod tidy
 make migrate-up DATABASE_URL="postgres://mpo_user:mpo_password@localhost:5432/management_project_one?sslmode=disable"
-make run                     # http://localhost:8080
+make run                     # http://localhost:6990
 
 # 3. Frontend
 cd ../frontend

@@ -37,7 +37,7 @@ func Load() (*Config, error) {
 
 	c := &Config{
 		AppEnv:         get("APP_ENV", "development"),
-		Port:           get("PORT", "8080"),
+		Port:           get("PORT", "6990"),
 		DBHost:         get("DB_HOST", "localhost"),
 		DBPort:         get("DB_PORT", "5432"),
 		DBUser:         get("DB_USER", "mpo"),

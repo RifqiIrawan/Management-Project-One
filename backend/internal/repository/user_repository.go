@@ -40,6 +40,18 @@ func (r *UserRepository) FindByID(ctx context.Context, id string) (*model.User, 
 	return &u, wrapFind(err, "find user by id")
 }
 
+// SearchByEmailPrefix mencari user berdasarkan awalan email (untuk mengundang anggota).
+func (r *UserRepository) SearchByEmailPrefix(ctx context.Context, prefix, excludeID string, limit int) ([]model.User, error) {
+	users := []model.User{}
+	err := r.db.WithContext(ctx).
+		Where("email LIKE ? AND id <> ?", escapeLike(prefix)+"%", excludeID).
+		Order("email").Limit(limit).Find(&users).Error
+	if err != nil {
+		return nil, fmt.Errorf("search users: %w", err)
+	}
+	return users, nil
+}
+
 func (r *UserRepository) UpdateProfile(ctx context.Context, id string, fields map[string]any) error {
 	err := r.db.WithContext(ctx).Model(&model.User{}).Where("id = ?", id).Updates(fields).Error
 	if err != nil {

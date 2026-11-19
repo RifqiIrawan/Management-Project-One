@@ -40,7 +40,7 @@ cp backend/.env.example backend/.env     # lalu isi DB_PASSWORD
 psql -U postgres -c "CREATE ROLE mpo LOGIN PASSWORD 'isi_sama_dengan_env';"
 psql -U postgres -c "CREATE DATABASE management_project_one OWNER mpo;"
 cd backend && go run ./cmd/api      # atau dari root: go run ./backend/cmd/api
-curl http://localhost:8080/api/v1/health
+curl http://localhost:6990/api/v1/health
 ```
 
 ## Catatan

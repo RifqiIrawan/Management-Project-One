@@ -17,6 +17,23 @@ func NewUserService(users *repository.UserRepository) *UserService {
 	return &UserService{users: users}
 }
 
+// Search: pencarian awalan email (min. 3 karakter, maks. 5 hasil, tidak termasuk diri sendiri).
+func (s *UserService) Search(ctx context.Context, actorID, q string) ([]dto.UserSummary, error) {
+	q = strings.ToLower(strings.TrimSpace(q))
+	if utf8.RuneCountInString(q) < 3 {
+		return nil, apperror.Validation(map[string]string{"email": "Email minimal 3 karakter"})
+	}
+	users, err := s.users.SearchByEmailPrefix(ctx, q, actorID, 5)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]dto.UserSummary, len(users))
+	for i, u := range users {
+		out[i] = dto.UserSummary{ID: u.ID, Name: u.Name, Email: u.Email, AvatarColor: u.AvatarColor}
+	}
+	return out, nil
+}
+
 func (s *UserService) UpdateProfile(ctx context.Context, userID string, req dto.UpdateProfileRequest) (*model.User, error) {
 	fields := map[string]any{}
 	if req.Name != nil {

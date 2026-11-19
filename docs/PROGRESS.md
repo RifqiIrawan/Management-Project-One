@@ -15,7 +15,7 @@ Legenda: ✅ selesai · 🚧 sedang dikerjakan · ⏳ belum dimulai
 | 0 | Setup | Koneksi Git & GitHub, `.gitignore` | ✅ | [00-git-setup](features/00-git-setup.md) |
 | 1 | Setup | Kerangka backend (config, DB, router, health check, PostgreSQL lokal) | ✅ | [01-backend-setup](features/01-backend-setup.md) |
 | 2 | Auth | Register, login, JWT access + refresh, middleware, profil, ganti password | ✅ | [02-auth](features/02-auth.md) |
-| 3 | Proyek | CRUD proyek, anggota, hak akses (RBAC) | ⏳ | — |
+| 3 | Proyek | CRUD proyek, anggota, hak akses (RBAC) | ✅ | [03-projects](features/03-projects.md) |
 | 4 | Tugas | CRUD tugas, nomor `MPO-x`, status Kanban | ⏳ | — |
 | 5 | Pencarian | List, filter, pencarian, Tugas Saya | ⏳ | — |
 | 6 | Kolaborasi | Komentar & riwayat aktivitas | ⏳ | — |
