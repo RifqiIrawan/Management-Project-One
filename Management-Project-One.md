@@ -1361,7 +1361,7 @@ export const PRIORITY_CONFIG: Record<TaskPriority, { label: string; color: strin
 ```env
 APP_ENV=development
 APP_PORT=8080
-FRONTEND_URL=http://localhost:5173
+FRONTEND_URL=http://localhost:6969
 
 DB_HOST=localhost
 DB_PORT=5432
@@ -1421,7 +1421,7 @@ services:
   frontend:
     build: ./frontend
     ports:
-      - "5173:80"
+      - "6969:80"
     depends_on:
       - backend
 
@@ -1472,7 +1472,7 @@ make run                     # http://localhost:8080
 cd ../frontend
 cp .env.example .env
 npm install
-npm run dev                  # http://localhost:5173
+npm run dev                  # http://localhost:6969 (atur server.port: 6969 di vite.config.ts)
 ```
 
 **Inisialisasi proyek dari nol:**

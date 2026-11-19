@@ -15,13 +15,22 @@ func main() {
 		slog.Error("load config", "err", err)
 		os.Exit(1)
 	}
+	if err := database.Migrate(cfg); err != nil {
+		slog.Error("migrate database", "err", err)
+		os.Exit(1)
+	}
 	db, err := database.Connect(cfg)
 	if err != nil {
 		slog.Error("connect database", "err", err)
 		os.Exit(1)
 	}
+	r, err := router.New(cfg, db)
+	if err != nil {
+		slog.Error("setup router", "err", err)
+		os.Exit(1)
+	}
 	slog.Info("server berjalan", "port", cfg.Port)
-	if err := router.New(cfg, db).Run(":" + cfg.Port); err != nil {
+	if err := r.Run(":" + cfg.Port); err != nil {
 		slog.Error("run server", "err", err)
 		os.Exit(1)
 	}
