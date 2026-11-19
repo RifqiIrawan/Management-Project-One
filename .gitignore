@@ -1,0 +1,30 @@
+# Secrets / environment (jangan pernah di-commit)
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# Go
+backend/bin/
+backend/tmp/
+*.exe
+*.test
+*.out
+coverage.*
+
+# Node / Frontend
+node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Docker volume data
+pgdata/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log
