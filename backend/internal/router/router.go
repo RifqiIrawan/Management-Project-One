@@ -43,6 +43,8 @@ func New(cfg *config.Config, db *gorm.DB) (*gin.Engine, error) {
 	taskRepo := repository.NewTaskRepository(db)
 	commentSvc := service.NewCommentService(taskRepo, repository.NewCommentRepository(db))
 	activitySvc := service.NewActivityService(projectRepo, taskRepo, repository.NewActivityRepository(db))
+	dashboardSvc := service.NewDashboardService(taskRepo, repository.NewActivityRepository(db), projectSvc, cfg.Timezone)
+	dashboardH := handler.NewDashboardHandler(dashboardSvc)
 	taskH := handler.NewTaskHandler(taskSvc)
 	commentH := handler.NewCommentHandler(commentSvc)
 	activityH := handler.NewActivityHandler(activitySvc)
@@ -86,6 +88,7 @@ func New(cfg *config.Config, db *gorm.DB) (*gin.Engine, error) {
 	private.PATCH("/me", userH.UpdateMe)
 	private.PATCH("/me/password", authH.ChangePassword)
 	private.GET("/me/tasks", taskH.MyTasks)
+	private.GET("/dashboard", dashboardH.Get)
 	private.GET("/users/search", middleware.NewIPLimiter(30).Middleware(), userH.Search)
 
 	projects := private.Group("/projects")

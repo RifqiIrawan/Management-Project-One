@@ -32,7 +32,8 @@ type ActivityResponse struct {
 	Action    string         `json:"action"`
 	Message   string         `json:"message"` // kalimat siap tampil, mis. "Budi membuat tugas MPO-12"
 	User      UserRef        `json:"user"`
-	TaskID    *string        `json:"task_id"` // null bila tugasnya sudah dihapus
+	Project   *ProjectRef    `json:"project,omitempty"` // hanya pada riwayat lintas proyek (dashboard)
+	TaskID    *string        `json:"task_id"`           // null bila tugasnya sudah dihapus
 	Code      string         `json:"code"`
 	Metadata  map[string]any `json:"metadata"`
 	CreatedAt time.Time      `json:"created_at"`

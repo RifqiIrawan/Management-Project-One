@@ -37,6 +37,11 @@ type ActivityRow struct {
 	CreatedAt time.Time
 	FromName  *string
 	ToName    *string
+
+	// hanya terisi oleh ListForUser (riwayat lintas proyek)
+	ProjectID   string
+	ProjectName string
+	ProjectKey  string
 }
 
 // ActivityScope menentukan riwayat proyek (TaskID kosong) atau satu tugas.
@@ -83,6 +88,33 @@ ORDER BY a.created_at DESC, a.id DESC
 LIMIT ? OFFSET ?`, args...).Scan(&rows).Error
 	if err != nil {
 		return nil, fmt.Errorf("list activities: %w", err)
+	}
+	return rows, nil
+}
+
+// ListForUser: aktivitas terbaru dari proyek aktif yang diikuti user (lintas proyek), maks. limit.
+// LATERAL mengambil limit catatan teratas PER proyek lewat idx_activities_project lalu menggabungkannya,
+// sehingga biayanya mengikuti jumlah proyek user, bukan total riwayat seluruh proyek.
+func (r *ActivityRepository) ListForUser(ctx context.Context, userID string, limit int) ([]ActivityRow, error) {
+	rows := []ActivityRow{}
+	err := r.db.WithContext(ctx).Raw(`
+SELECT a.id, a.action, a.task_id, a.user_id, u.name AS user_name, u.avatar_color AS user_color,
+       a.metadata::text AS metadata, a.created_at, fu.name AS from_name, tu.name AS to_name,
+       p.id AS project_id, p.name AS project_name, p."key" AS project_key
+FROM project_members pm
+JOIN projects p ON p.id = pm.project_id AND p.archived_at IS NULL
+CROSS JOIN LATERAL (
+    SELECT * FROM activities x WHERE x.project_id = pm.project_id
+    ORDER BY x.created_at DESC, x.id DESC LIMIT ?
+) a
+JOIN users u ON u.id = a.user_id
+LEFT JOIN users fu ON fu.id = CASE WHEN a.action = 'task.assigned' THEN (a.metadata->>'from')::uuid END
+LEFT JOIN users tu ON tu.id = CASE WHEN a.action = 'task.assigned' THEN (a.metadata->>'to')::uuid END
+WHERE pm.user_id = ?
+ORDER BY a.created_at DESC, a.id DESC
+LIMIT ?`, limit, userID, limit).Scan(&rows).Error
+	if err != nil {
+		return nil, fmt.Errorf("list user activities: %w", err)
 	}
 	return rows, nil
 }

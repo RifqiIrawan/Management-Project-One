@@ -19,7 +19,7 @@ Legenda: ✅ selesai · 🚧 sedang dikerjakan · ⏳ belum dimulai
 | 4 | Tugas | CRUD tugas, nomor `MPO-x`, status Kanban, riwayat aktivitas (pencatatan) | ✅ | [04-tasks](features/04-tasks.md) |
 | 5 | Pencarian | List, filter, pencarian, sort, pagination, Tugas Saya | ✅ | [05-search-filter](features/05-search-filter.md) |
 | 6 | Kolaborasi | Komentar & riwayat aktivitas (pembacaan), `comment_count` | ✅ | [06-comments-activity](features/06-comments-activity.md) |
-| 7 | Dashboard | Statistik dashboard | ⏳ | — |
+| 7 | Dashboard | Statistik, tugas jatuh tempo, proyek terbaru, aktivitas terbaru (`GET /dashboard`) | ✅ | [07-dashboard](features/07-dashboard.md) |
 | 8 | Rilis | Swagger, testing, Docker produksi | ⏳ | — |
 
 ## Frontend

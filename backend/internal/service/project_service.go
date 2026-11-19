@@ -56,6 +56,20 @@ func (s *ProjectService) List(ctx context.Context, userID, q string, archived bo
 	if err != nil {
 		return nil, err
 	}
+	return s.withPreviews(ctx, rows)
+}
+
+// ListRecent: proyek aktif terbaru milik user (favorit di atas), maks. limit. Untuk dashboard.
+func (s *ProjectService) ListRecent(ctx context.Context, userID string, limit int) ([]dto.ProjectResponse, error) {
+	rows, err := s.projects.ListRecentForUser(ctx, userID, limit)
+	if err != nil {
+		return nil, err
+	}
+	return s.withPreviews(ctx, rows)
+}
+
+// withPreviews menyusun respons proyek beserta avatar anggota (maks. 4) dalam satu query tambahan.
+func (s *ProjectService) withPreviews(ctx context.Context, rows []repository.ProjectRow) ([]dto.ProjectResponse, error) {
 	ids := make([]string, len(rows))
 	for i, r := range rows {
 		ids[i] = r.ID
@@ -77,7 +91,6 @@ func (s *ProjectService) List(ctx context.Context, userID, q string, archived bo
 	}
 	return out, nil
 }
-
 func (s *ProjectService) Get(ctx context.Context, userID, projectID string) (*dto.ProjectResponse, error) {
 	row, err := s.member(ctx, userID, projectID)
 	if err != nil {

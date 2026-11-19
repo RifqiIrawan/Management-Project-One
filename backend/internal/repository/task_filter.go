@@ -20,6 +20,7 @@ type TaskFilter struct {
 	Today        string   // YYYY-MM-DD menurut zona waktu aplikasi
 	WeekEnd      string   // YYYY-MM-DD akhir minggu ini (Minggu)
 
+	HasDue          bool // hanya tugas yang punya deadline (internal, mis. dashboard)
 	ExcludeDone     bool
 	ExcludeArchived bool
 }
@@ -92,6 +93,9 @@ func (f TaskFilter) where() (string, []any) {
 	if f.ExcludeArchived {
 		add("p.archived_at IS NULL")
 	}
+	if f.HasDue {
+		add("t.due_date IS NOT NULL")
+	}
 	if f.ExcludeDone {
 		add("t.status <> 'done'")
 	}
@@ -143,6 +147,38 @@ func (f TaskFilter) where() (string, []any) {
 		}
 	}
 	return strings.Join(conds, " AND "), args
+}
+
+// TaskStats: ringkasan tugas yang di-assign ke seorang user.
+type TaskStats struct {
+	TotalTasks     int
+	OpenTasks      int
+	CompletedTasks int
+	InProgress     int
+	DueThisWeek    int
+	Overdue        int
+}
+
+// StatsForUser menghitung semua angka dashboard dalam satu query agregat (FILTER). Cakupan sama dengan
+// "Tugas Saya": tugas di-assign ke user, proyek tidak terarsip, user masih anggota proyek.
+func (r *TaskRepository) StatsForUser(ctx context.Context, userID, today, weekEnd string) (TaskStats, error) {
+	var out TaskStats
+	err := r.db.WithContext(ctx).Raw(`
+SELECT COUNT(*) AS total_tasks,
+       COUNT(*) FILTER (WHERE t.status <> 'done') AS open_tasks,
+       COUNT(*) FILTER (WHERE t.status = 'done') AS completed_tasks,
+       COUNT(*) FILTER (WHERE t.status = 'in_progress') AS in_progress,
+       COUNT(*) FILTER (WHERE t.status <> 'done' AND t.due_date >= CAST(? AS date) AND t.due_date <= CAST(? AS date)) AS due_this_week,
+       COUNT(*) FILTER (WHERE t.status <> 'done' AND t.due_date < CAST(? AS date)) AS overdue
+FROM tasks t
+JOIN projects p ON p.id = t.project_id
+WHERE t.assignee_id = ? AND p.archived_at IS NULL
+  AND EXISTS (SELECT 1 FROM project_members pmx WHERE pmx.project_id = t.project_id AND pmx.user_id = ?)`,
+		today, weekEnd, today, userID, userID).Scan(&out).Error
+	if err != nil {
+		return TaskStats{}, fmt.Errorf("task stats: %w", err)
+	}
+	return out, nil
 }
 
 // Count menghitung tugas yang cocok dengan filter (untuk meta pagination).

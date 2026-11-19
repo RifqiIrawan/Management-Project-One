@@ -51,12 +51,22 @@ func (s *ActivityService) list(ctx context.Context, scope repository.ActivitySco
 	}
 	out := make([]dto.ActivityResponse, len(rows))
 	for i := range rows {
-		meta := parseMetadata(rows[i].Metadata)
-		out[i] = dto.ActivityResponse{
-			ID: rows[i].ID, Action: rows[i].Action, Message: activityMessage(rows[i], meta),
-			User:   dto.UserRef{ID: rows[i].UserID, Name: rows[i].UserName, AvatarColor: rows[i].UserColor},
-			TaskID: rows[i].TaskID, Code: metaString(meta, "code"), Metadata: meta, CreatedAt: rows[i].CreatedAt,
-		}
+		out[i] = toActivityResponse(rows[i])
 	}
 	return out, pageMeta(page, perPage, total), nil
+}
+
+// toActivityResponse menyusun respons riwayat (kalimat Indonesia + data terstruktur).
+// Info proyek hanya disertakan untuk riwayat lintas proyek.
+func toActivityResponse(r repository.ActivityRow) dto.ActivityResponse {
+	meta := parseMetadata(r.Metadata)
+	resp := dto.ActivityResponse{
+		ID: r.ID, Action: r.Action, Message: activityMessage(r, meta),
+		User:   dto.UserRef{ID: r.UserID, Name: r.UserName, AvatarColor: r.UserColor},
+		TaskID: r.TaskID, Code: metaString(meta, "code"), Metadata: meta, CreatedAt: r.CreatedAt,
+	}
+	if r.ProjectID != "" {
+		resp.Project = &dto.ProjectRef{ID: r.ProjectID, Name: r.ProjectName, Key: r.ProjectKey}
+	}
+	return resp
 }

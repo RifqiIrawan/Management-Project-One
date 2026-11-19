@@ -97,4 +97,4 @@ Dugaan awal bahwa riwayat butuh indeks `(project_id, created_at, id)` **tidak te
 - Isi komentar disimpan apa adanya; **sanitasi Markdown dilakukan frontend saat render** (sesuai spesifikasi). Backend tidak merender HTML.
 - Riwayat belum mencatat perubahan keanggotaan (undang/keluarkan/ubah role) dan pengarsipan proyek.
 - Mention `@nama` di komentar dijadwalkan v1.2.
-- Dashboard (fitur 07) akan membutuhkan riwayat lintas proyek ("aktivitas terbaru saya").
+- ~~Riwayat lintas proyek untuk dashboard~~ → selesai di [fitur 07](07-dashboard.md).

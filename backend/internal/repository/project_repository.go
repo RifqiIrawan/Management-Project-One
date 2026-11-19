@@ -97,6 +97,18 @@ func (r *ProjectRepository) ListForUser(ctx context.Context, userID, q string, a
 	return rows, nil
 }
 
+// ListRecentForUser: proyek aktif (tidak terarsip) user, favorit di atas lalu terbaru, dibatasi limit.
+func (r *ProjectRepository) ListRecentForUser(ctx context.Context, userID string, limit int) ([]ProjectRow, error) {
+	rows := []ProjectRow{}
+	err := r.db.WithContext(ctx).
+		Raw(projectSelect+` WHERE p.archived_at IS NULL ORDER BY pm.is_favorite DESC, p.created_at DESC LIMIT ?`, userID, limit).
+		Scan(&rows).Error
+	if err != nil {
+		return nil, fmt.Errorf("list recent projects: %w", err)
+	}
+	return rows, nil
+}
+
 // MembersPreview mengambil maks. 4 anggota pertama tiap proyek (untuk avatar di kartu).
 func (r *ProjectRepository) MembersPreview(ctx context.Context, projectIDs []string) ([]MemberPreviewRow, error) {
 	rows := []MemberPreviewRow{}
