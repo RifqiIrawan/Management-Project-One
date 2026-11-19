@@ -20,11 +20,12 @@ $started = Get-Date
 
 function Add-Result($name, $ok, $detail, $seconds) { $results.Add([pscustomobject]@{ Suite = $name; Status = $(if ($ok) { 'LULUS' } else { 'GAGAL' }); Detail = $detail; Detik = [int]$seconds }) }
 
-function Start-Server {
-  $saved = [Environment]::GetEnvironmentVariable('API_RATE_LIMIT_PER_MIN', 'Process')
-  [Environment]::SetEnvironmentVariable('API_RATE_LIMIT_PER_MIN', '0', 'Process')
+function Start-Server($extra = @{}) {
+  $vars = @{ API_RATE_LIMIT_PER_MIN = '0' } + $extra
+  $saved = @{}
+  foreach ($k in $vars.Keys) { $saved[$k] = [Environment]::GetEnvironmentVariable($k, 'Process'); [Environment]::SetEnvironmentVariable($k, $vars[$k], 'Process') }
   try { $p = Start-Process -FilePath $exe -WorkingDirectory $root -PassThru -WindowStyle Hidden -RedirectStandardOutput "$env:TEMP\mpo-run.out.log" -RedirectStandardError "$env:TEMP\mpo-run.err.log" }
-  finally { [Environment]::SetEnvironmentVariable('API_RATE_LIMIT_PER_MIN', $saved, 'Process') }
+  finally { foreach ($k in $saved.Keys) { [Environment]::SetEnvironmentVariable($k, $saved[$k], 'Process') } }
   foreach ($i in 1..40) {
     if ($p.HasExited) { break }
     try { if ((Invoke-WebRequest 'http://localhost:6990/api/v1/health' -UseBasicParsing -TimeoutSec 2).StatusCode -eq 200) { return $p } } catch {}
@@ -73,14 +74,14 @@ Run-Step 'build' {
   go build -o $exe ./cmd/api 2>&1 | Out-Null
   [pscustomobject]@{ Ok = ($LASTEXITCODE -eq 0); Detail = $(if ($LASTEXITCODE -eq 0) { 'bin/api.exe' } else { 'gagal membangun' }) }
 }
-Run-Step 'tes kontrak OpenAPI' {
-  $srv = Start-Server
+Run-Step 'tes kontrak OpenAPI (tanda tangan enforce)' {
+  $srv = Start-Server @{ API_SIGNATURE = 'enforce' }   # semua request terautentikasi ditandatangani
   try {
-    $env:CONTRACT_BASE_URL = 'http://localhost:6990'
+    $env:CONTRACT_BASE_URL = 'http://localhost:6990'; $env:CONTRACT_EXPECT_ENFORCE = '1'
     $o = go test -count=1 -v ./tests/contract/ 2>&1 | Out-String
     $n = [regex]::Match($o, 'divalidasi: (\d+)').Groups[1].Value
     [pscustomobject]@{ Ok = ($LASTEXITCODE -eq 0 -and $n); Detail = $(if ($LASTEXITCODE -eq 0 -and $n) { "$n operasi divalidasi terhadap openapi.yaml" } else { ($o -split "`n" | Select-String 'tidak sesuai|belum dijalankan|status' | Select-Object -First 4) -join ' | ' }) }
-  } finally { Remove-Item Env:CONTRACT_BASE_URL -ErrorAction SilentlyContinue; Stop-Process -Id $srv.Id -Force -ErrorAction SilentlyContinue; Start-Sleep -Seconds 2 }
+  } finally { Remove-Item Env:CONTRACT_BASE_URL, Env:CONTRACT_EXPECT_ENFORCE -ErrorAction SilentlyContinue; Stop-Process -Id $srv.Id -Force -ErrorAction SilentlyContinue; Start-Sleep -Seconds 2 }
 }
 
 if (-not $Quick) {
@@ -94,6 +95,12 @@ if (-not $Quick) {
       $line = $o | Where-Object { $_ -match '^(LULUS|GAGAL|TIDAK VALID)' } | Select-Object -Last 1
       [pscustomobject]@{ Ok = ($line -match '^LULUS'); Detail = "$line" }
     } finally { Stop-Process -Id $srv.Id -Force -ErrorAction SilentlyContinue; Start-Sleep -Seconds 2 }
+  }
+  Run-Step 'e2e_signature.ps1' {
+    $lines = & powershell -NoProfile -File (Join-Path $PSScriptRoot 'e2e_signature.ps1') 2>&1 | ForEach-Object { "$_" }
+    $summary = $lines | Where-Object { $_ -match '^HASIL:' } | Select-Object -Last 1
+    $fails = @($lines | Where-Object { $_ -match '^FAIL' }); $fails | ForEach-Object { "  $_" }
+    [pscustomobject]@{ Ok = ($summary -and $summary -match ' 0 gagal'); Detail = $(if ($summary) { $summary } else { 'tidak ada baris HASIL' }) }
   }
   Run-Step 'e2e_ops.ps1' {
     $lines = & powershell -NoProfile -File (Join-Path $PSScriptRoot 'e2e_ops.ps1') 2>&1 | ForEach-Object { "$_" }

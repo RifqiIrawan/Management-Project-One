@@ -53,6 +53,8 @@ Server menolak start bila `DB_PASSWORD` / `JWT_SECRET` masih berisi nilai contoh
 | `BCRYPT_COST` | `12` | 10-14 |
 | `APP_TIMEZONE` | `Asia/Jakarta` | Acuan "hari ini / minggu ini" untuk deadline |
 | `API_RATE_LIMIT_PER_MIN` | `100` | Batas request per user per menit; `0` = nonaktif |
+| `API_SIGNATURE` | `enforce` (production) / `optional` (development) | Tanda tangan HMAC tiap request: `off`, `optional`, `enforce`. Lihat [fitur 09](docs/features/09-request-signing.md) |
+| `API_SIGNATURE_SKEW` | `5m` | Toleransi selisih jam klien-server untuk tanda tangan |
 | `TRUSTED_PROXIES` | (kosong) | IP/CIDR reverse proxy (mis. `127.0.0.1`) agar IP klien benar |
 | `SWAGGER_ENABLED` | aktif bila bukan production | Swagger UI di `/api/docs` |
 | `TOKEN_CLEANUP_INTERVAL` | `1h` | Pembersihan refresh token kedaluwarsa (`0` = nonaktif) |

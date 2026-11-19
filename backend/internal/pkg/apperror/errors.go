@@ -17,15 +17,19 @@ func New(status int, code, message string) *Error {
 }
 
 var (
-	ErrNotFound     = New(http.StatusNotFound, "NOT_FOUND", "Data tidak ditemukan")
-	ErrForbidden    = New(http.StatusForbidden, "FORBIDDEN", "Anda tidak punya izin untuk aksi ini")
-	ErrUnauthorized = New(http.StatusUnauthorized, "UNAUTHORIZED", "Silakan login terlebih dahulu")
-	ErrTokenExpired = New(http.StatusUnauthorized, "TOKEN_EXPIRED", "Token kedaluwarsa")
-	ErrTooMany      = New(http.StatusTooManyRequests, "TOO_MANY_REQUESTS", "Terlalu banyak percobaan, coba lagi nanti")
-	ErrNoRoute      = New(http.StatusNotFound, "NOT_FOUND", "Endpoint tidak ditemukan")
-	ErrNoMethod     = New(http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Method tidak diizinkan untuk endpoint ini")
-	ErrTooLarge     = New(http.StatusRequestEntityTooLarge, "PAYLOAD_TOO_LARGE", "Ukuran data terlalu besar (maks. 1 MB)")
-	ErrInternal     = New(http.StatusInternalServerError, "INTERNAL_ERROR", "Terjadi kesalahan pada server")
+	ErrNotFound          = New(http.StatusNotFound, "NOT_FOUND", "Data tidak ditemukan")
+	ErrForbidden         = New(http.StatusForbidden, "FORBIDDEN", "Anda tidak punya izin untuk aksi ini")
+	ErrUnauthorized      = New(http.StatusUnauthorized, "UNAUTHORIZED", "Silakan login terlebih dahulu")
+	ErrTokenExpired      = New(http.StatusUnauthorized, "TOKEN_EXPIRED", "Token kedaluwarsa")
+	ErrTooMany           = New(http.StatusTooManyRequests, "TOO_MANY_REQUESTS", "Terlalu banyak percobaan, coba lagi nanti")
+	ErrSignatureRequired = New(http.StatusUnauthorized, "SIGNATURE_REQUIRED", "Request harus ditandatangani (X-Signature, X-Timestamp, X-Nonce)")
+	ErrSignatureInvalid  = New(http.StatusUnauthorized, "SIGNATURE_INVALID", "Tanda tangan request tidak valid")
+	ErrSignatureExpired  = New(http.StatusUnauthorized, "SIGNATURE_EXPIRED", "Waktu request di luar batas yang diizinkan; sinkronkan jam perangkat")
+	ErrSignatureReplay   = New(http.StatusUnauthorized, "SIGNATURE_REPLAY", "Request ini sudah pernah dikirim (nonce dipakai ulang)")
+	ErrNoRoute           = New(http.StatusNotFound, "NOT_FOUND", "Endpoint tidak ditemukan")
+	ErrNoMethod          = New(http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Method tidak diizinkan untuk endpoint ini")
+	ErrTooLarge          = New(http.StatusRequestEntityTooLarge, "PAYLOAD_TOO_LARGE", "Ukuran data terlalu besar (maks. 1 MB)")
+	ErrInternal          = New(http.StatusInternalServerError, "INTERNAL_ERROR", "Terjadi kesalahan pada server")
 )
 
 func Unauthorized(msg string) *Error { return New(http.StatusUnauthorized, "UNAUTHORIZED", msg) }

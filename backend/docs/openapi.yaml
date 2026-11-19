@@ -9,6 +9,26 @@ info:
     (HttpOnly, 7 hari). Kirim `Authorization: Bearer <access_token>` ke endpoint bertanda gembok.
     Saat access token habis (401 `TOKEN_EXPIRED`), panggil `POST /auth/refresh` (cookie terkirim otomatis).
 
+    **Tanda tangan request (HMAC).** Selain `Authorization: Bearer`, tiap request terautentikasi membawa
+    `X-Timestamp`, `X-Nonce`, dan `X-Signature`. Kunci tanda tangan (`signing_key`) tidak statis: server menurunkannya per
+    access token dan mengirimkannya bersama token saat login, refresh, atau ganti password; ia berganti tiap token baru.
+    Dengan begitu token yang bocor saja tidak cukup untuk membuat request, dan request yang tertangkap tidak bisa diubah
+    atau diputar ulang.
+
+    ```
+    string_yang_ditandatangani = "mpo1" \n METHOD \n PATH \n QUERY_KANONIK \n SHA256_HEX(body) \n X-Timestamp \n X-Nonce
+    X-Signature = hex(HMAC_SHA256(base64url_decode(signing_key), string_yang_ditandatangani))
+    ```
+
+    PATH ter-escape persis seperti dikirim (tanpa query). QUERY_KANONIK: tiap key dan value di-encode RFC 3986 (hanya
+    `A-Za-z0-9-._~` yang tidak di-encode), pasangan `key=value` diurutkan lalu digabung dengan `&`; kosong bila tanpa query.
+    Hash body dihitung atas byte yang dikirim (body kosong = hash string kosong). Kode kesalahan (HTTP 401):
+    `SIGNATURE_REQUIRED`, `SIGNATURE_INVALID`, `SIGNATURE_EXPIRED` (jam klien menyimpang; sinkronkan dengan header `Date` respons),
+    `SIGNATURE_REPLAY`. Mode server: `API_SIGNATURE=enforce` (default production), `optional` (default development, diverifikasi
+    bila ada), atau `off`. Swagger UI tidak bisa menghitung tanda tangan, jadi "Try it out" untuk endpoint terproteksi hanya
+    bekerja pada mode `optional` atau `off`. Implementasi acuan: `backend/internal/pkg/sign` (Go) dan
+    `frontend/src/utils/signature.ts` (TypeScript), diuji dengan vektor yang sama (`backend/internal/pkg/sign/testdata/vectors.json`).
+
     **Format respons.** Semua respons berbentuk `{ "success": true, "data": ..., "meta": ... }` atau
     `{ "success": false, "error": { "code", "message", "details" } }`.
 
@@ -133,7 +153,7 @@ paths:
       summary: Logout semua perangkat
       description: Mencabut semua refresh token dan membuat semua access token user langsung tidak berlaku.
       operationId: logoutAll
-      security: [{ bearerAuth: [] }]
+      security: [{ bearerAuth: [], requestSignature: [], requestTimestamp: [], requestNonce: [] }]
       responses:
         '200':
           description: Semua sesi dicabut
@@ -149,7 +169,7 @@ paths:
       tags: [Profil]
       summary: Profil saya
       operationId: getMe
-      security: [{ bearerAuth: [] }]
+      security: [{ bearerAuth: [], requestSignature: [], requestTimestamp: [], requestNonce: [] }]
       responses:
         '200':
           description: Profil
@@ -162,7 +182,7 @@ paths:
       tags: [Profil]
       summary: Ubah nama / warna avatar
       operationId: updateMe
-      security: [{ bearerAuth: [] }]
+      security: [{ bearerAuth: [], requestSignature: [], requestTimestamp: [], requestNonce: [] }]
       requestBody:
         required: true
         content:
@@ -183,7 +203,7 @@ paths:
       summary: Ganti password
       description: Semua sesi lain dicabut; perangkat ini otomatis mendapat sesi baru (token baru + cookie).
       operationId: changePassword
-      security: [{ bearerAuth: [] }]
+      security: [{ bearerAuth: [], requestSignature: [], requestTimestamp: [], requestNonce: [] }]
       requestBody:
         required: true
         content:
@@ -207,7 +227,7 @@ paths:
         kecuali `include_done=true` atau `status` diisi. Parameter `assignee` diabaikan.
         Dengan `group=due` hasilnya dikelompokkan menurut deadline (tanpa pagination).
       operationId: myTasks
-      security: [{ bearerAuth: [] }]
+      security: [{ bearerAuth: [], requestSignature: [], requestTimestamp: [], requestNonce: [] }]
       parameters:
         - { $ref: '#/components/parameters/TaskQ' }
         - { $ref: '#/components/parameters/TaskStatus' }
@@ -242,7 +262,7 @@ paths:
         Statistik tugas saya, 5 tugas jatuh tempo terdekat, 6 proyek terbaru (dengan progress), dan 10 aktivitas
         terbaru dari proyek yang saya ikuti. Semua daftar selalu berupa array (bukan null).
       operationId: dashboard
-      security: [{ bearerAuth: [] }]
+      security: [{ bearerAuth: [], requestSignature: [], requestTimestamp: [], requestNonce: [] }]
       responses:
         '200':
           description: Data dashboard
@@ -258,7 +278,7 @@ paths:
       summary: Cari user untuk diundang
       description: Pencarian awalan email, min. 3 karakter, maks. 5 hasil, tidak termasuk diri sendiri. Dibatasi 30/menit/IP.
       operationId: searchUsers
-      security: [{ bearerAuth: [] }]
+      security: [{ bearerAuth: [], requestSignature: [], requestTimestamp: [], requestNonce: [] }]
       parameters:
         - name: email
           in: query
@@ -281,7 +301,7 @@ paths:
       summary: Daftar proyek saya
       description: Favorit di atas, lalu terbaru. Memuat jumlah anggota/tugas, progress, dan avatar anggota.
       operationId: listProjects
-      security: [{ bearerAuth: [] }]
+      security: [{ bearerAuth: [], requestSignature: [], requestTimestamp: [], requestNonce: [] }]
       parameters:
         - name: q
           in: query
@@ -304,7 +324,7 @@ paths:
       summary: Buat proyek
       description: Pembuat otomatis menjadi owner. `key` (2-5 huruf, otomatis huruf besar) unik dan tidak bisa diubah.
       operationId: createProject
-      security: [{ bearerAuth: [] }]
+      security: [{ bearerAuth: [], requestSignature: [], requestTimestamp: [], requestNonce: [] }]
       requestBody:
         required: true
         content:
@@ -327,7 +347,7 @@ paths:
       tags: [Proyek]
       summary: Detail proyek
       operationId: getProject
-      security: [{ bearerAuth: [] }]
+      security: [{ bearerAuth: [], requestSignature: [], requestTimestamp: [], requestNonce: [] }]
       responses:
         '200':
           description: Detail proyek beserta role dan favorit saya
@@ -342,7 +362,7 @@ paths:
       summary: Edit proyek (owner)
       description: Field yang tidak dikirim tidak diubah; `description` dan `icon` boleh dikosongkan dengan string kosong.
       operationId: updateProject
-      security: [{ bearerAuth: [] }]
+      security: [{ bearerAuth: [], requestSignature: [], requestTimestamp: [], requestNonce: [] }]
       requestBody:
         required: true
         content:
@@ -364,7 +384,7 @@ paths:
       summary: Hapus proyek permanen (owner)
       description: Wajib mengetik nama proyek persis di `confirm_name`. Tugas, komentar, dan riwayatnya ikut terhapus.
       operationId: deleteProject
-      security: [{ bearerAuth: [] }]
+      security: [{ bearerAuth: [], requestSignature: [], requestTimestamp: [], requestNonce: [] }]
       requestBody:
         required: true
         content:
@@ -389,7 +409,7 @@ paths:
       summary: Arsipkan / pulihkan proyek (owner)
       description: Proyek terarsip disembunyikan dari daftar default dan tugas/komentarnya menjadi read-only.
       operationId: archiveProject
-      security: [{ bearerAuth: [] }]
+      security: [{ bearerAuth: [], requestSignature: [], requestTimestamp: [], requestNonce: [] }]
       requestBody:
         required: true
         content:
@@ -413,7 +433,7 @@ paths:
       tags: [Proyek]
       summary: Toggle favorit (per user)
       operationId: toggleFavorite
-      security: [{ bearerAuth: [] }]
+      security: [{ bearerAuth: [], requestSignature: [], requestTimestamp: [], requestNonce: [] }]
       responses:
         '200':
           description: Status favorit terbaru
@@ -432,7 +452,7 @@ paths:
       tags: [Anggota]
       summary: Daftar anggota proyek (owner dulu)
       operationId: listMembers
-      security: [{ bearerAuth: [] }]
+      security: [{ bearerAuth: [], requestSignature: [], requestTimestamp: [], requestNonce: [] }]
       responses:
         '200':
           description: Anggota
@@ -447,7 +467,7 @@ paths:
       summary: Undang anggota berdasarkan email (owner)
       description: User harus sudah terdaftar. Role default `member`.
       operationId: addMember
-      security: [{ bearerAuth: [] }]
+      security: [{ bearerAuth: [], requestSignature: [], requestTimestamp: [], requestNonce: [] }]
       requestBody:
         required: true
         content:
@@ -474,7 +494,7 @@ paths:
       summary: Ubah role anggota (owner)
       description: Owner terakhir tidak bisa diturunkan (400).
       operationId: updateMemberRole
-      security: [{ bearerAuth: [] }]
+      security: [{ bearerAuth: [], requestSignature: [], requestTimestamp: [], requestNonce: [] }]
       requestBody:
         required: true
         content:
@@ -496,7 +516,7 @@ paths:
       summary: Keluarkan anggota (owner) atau keluar sendiri
       description: Tugas yang di-assign ke anggota tersebut menjadi unassigned. Owner terakhir tidak bisa keluar (400).
       operationId: removeMember
-      security: [{ bearerAuth: [] }]
+      security: [{ bearerAuth: [], requestSignature: [], requestTimestamp: [], requestNonce: [] }]
       responses:
         '200':
           description: Anggota dikeluarkan
@@ -521,7 +541,7 @@ paths:
         Default urutan `-created_at`. `view=board` mengembalikan semua tugas yang cocok per kolom Kanban
         (urut posisi, tanpa pagination).
       operationId: listTasks
-      security: [{ bearerAuth: [] }]
+      security: [{ bearerAuth: [], requestSignature: [], requestTimestamp: [], requestNonce: [] }]
       parameters:
         - { $ref: '#/components/parameters/TaskQ' }
         - { $ref: '#/components/parameters/TaskStatus' }
@@ -552,7 +572,7 @@ paths:
       summary: Buat tugas
       description: Nomor tugas (`MPO-12`) dibuat otomatis. Tugas baru masuk di paling atas kolomnya (default `todo`).
       operationId: createTask
-      security: [{ bearerAuth: [] }]
+      security: [{ bearerAuth: [], requestSignature: [], requestTimestamp: [], requestNonce: [] }]
       requestBody:
         required: true
         content:
@@ -575,7 +595,7 @@ paths:
       tags: [Tugas]
       summary: Detail tugas
       operationId: getTask
-      security: [{ bearerAuth: [] }]
+      security: [{ bearerAuth: [], requestSignature: [], requestTimestamp: [], requestNonce: [] }]
       responses:
         '200':
           description: Tugas
@@ -593,7 +613,7 @@ paths:
         `due_date`. Mengubah `status` mengatur `completed_at` otomatis dan memindahkan kartu ke paling atas
         kolom tujuan. Tanpa perubahan nyata = 200 tanpa menulis.
       operationId: updateTask
-      security: [{ bearerAuth: [] }]
+      security: [{ bearerAuth: [], requestSignature: [], requestTimestamp: [], requestNonce: [] }]
       requestBody:
         required: true
         content:
@@ -613,7 +633,7 @@ paths:
       tags: [Tugas]
       summary: Hapus tugas (pembuat atau owner)
       operationId: deleteTask
-      security: [{ bearerAuth: [] }]
+      security: [{ bearerAuth: [], requestSignature: [], requestTimestamp: [], requestNonce: [] }]
       responses:
         '200':
           description: Terhapus
@@ -635,7 +655,7 @@ paths:
         `position` desimal (mis. `1.5` di antara kartu 1.0 dan 2.0). Tanpa `position` kartu masuk
         paling atas kolom tujuan.
       operationId: moveTask
-      security: [{ bearerAuth: [] }]
+      security: [{ bearerAuth: [], requestSignature: [], requestTimestamp: [], requestNonce: [] }]
       requestBody:
         required: true
         content:
@@ -660,7 +680,7 @@ paths:
       tags: [Komentar]
       summary: Daftar komentar (terlama dulu)
       operationId: listComments
-      security: [{ bearerAuth: [] }]
+      security: [{ bearerAuth: [], requestSignature: [], requestTimestamp: [], requestNonce: [] }]
       parameters:
         - { $ref: '#/components/parameters/Page' }
         - name: per_page
@@ -682,7 +702,7 @@ paths:
       summary: Tulis komentar
       description: Isi di-trim, maks. 5000 karakter; baris baru dan Markdown dipertahankan. Dicatat di riwayat.
       operationId: createComment
-      security: [{ bearerAuth: [] }]
+      security: [{ bearerAuth: [], requestSignature: [], requestTimestamp: [], requestNonce: [] }]
       requestBody:
         required: true
         content:
@@ -706,7 +726,7 @@ paths:
       summary: Edit komentar (hanya penulis)
       description: Isi yang sama persis tidak menandai komentar sebagai diedit.
       operationId: updateComment
-      security: [{ bearerAuth: [] }]
+      security: [{ bearerAuth: [], requestSignature: [], requestTimestamp: [], requestNonce: [] }]
       requestBody:
         required: true
         content:
@@ -727,7 +747,7 @@ paths:
       tags: [Komentar]
       summary: Hapus komentar (penulis atau owner proyek)
       operationId: deleteComment
-      security: [{ bearerAuth: [] }]
+      security: [{ bearerAuth: [], requestSignature: [], requestTimestamp: [], requestNonce: [] }]
       responses:
         '200':
           description: Terhapus (catatan riwayatnya ikut dihapus)
@@ -748,7 +768,7 @@ paths:
       tags: [Aktivitas]
       summary: Riwayat satu tugas (terbaru dulu)
       operationId: taskActivities
-      security: [{ bearerAuth: [] }]
+      security: [{ bearerAuth: [], requestSignature: [], requestTimestamp: [], requestNonce: [] }]
       parameters:
         - { $ref: '#/components/parameters/Page' }
         - { $ref: '#/components/parameters/PerPage' }
@@ -769,7 +789,7 @@ paths:
       tags: [Aktivitas]
       summary: Riwayat seluruh proyek (terbaru dulu)
       operationId: projectActivities
-      security: [{ bearerAuth: [] }]
+      security: [{ bearerAuth: [], requestSignature: [], requestTimestamp: [], requestNonce: [] }]
       parameters:
         - { $ref: '#/components/parameters/Page' }
         - { $ref: '#/components/parameters/PerPage' }
@@ -791,6 +811,24 @@ components:
       scheme: bearer
       bearerFormat: JWT
       description: Access token dari `/auth/login` atau `/auth/refresh`.
+    requestSignature:
+      type: apiKey
+      in: header
+      name: X-Signature
+      description: |
+        HMAC-SHA256 (hex) atas string kanonik request, dengan `signing_key` milik access token yang dipakai.
+        Lihat bagian "Tanda tangan request" pada deskripsi API. Wajib bila server berjalan dengan
+        `API_SIGNATURE=enforce` (default production); di development opsional (diverifikasi bila ada).
+    requestTimestamp:
+      type: apiKey
+      in: header
+      name: X-Timestamp
+      description: Detik unix saat request dibuat (toleransi default 5 menit). Bagian dari tanda tangan.
+    requestNonce:
+      type: apiKey
+      in: header
+      name: X-Nonce
+      description: String acak unik per request (16-64 karakter A-Za-z0-9_-). Dipakai sekali; pemakaian ulang ditolak (anti-replay).
     cookieAuth:
       type: apiKey
       in: cookie
@@ -858,7 +896,7 @@ components:
         application/json:
           schema: { $ref: '#/components/schemas/ErrorEnvelope' }
     Unauthorized:
-      description: Belum login / token tidak valid (`UNAUTHORIZED`) atau kedaluwarsa (`TOKEN_EXPIRED`)
+      description: Belum login / token tidak valid (UNAUTHORIZED), kedaluwarsa (TOKEN_EXPIRED), atau tanda tangan request bermasalah (SIGNATURE_REQUIRED, SIGNATURE_INVALID, SIGNATURE_EXPIRED, SIGNATURE_REPLAY)
       content:
         application/json:
           schema: { $ref: '#/components/schemas/ErrorEnvelope' }
@@ -923,7 +961,7 @@ components:
         code:
           type: string
           example: VALIDATION_ERROR
-          description: VALIDATION_ERROR, UNAUTHORIZED, TOKEN_EXPIRED, FORBIDDEN, NOT_FOUND, METHOD_NOT_ALLOWED, CONFLICT, PAYLOAD_TOO_LARGE, TOO_MANY_REQUESTS, UNAVAILABLE, INTERNAL_ERROR
+          description: VALIDATION_ERROR, UNAUTHORIZED, TOKEN_EXPIRED, SIGNATURE_REQUIRED, SIGNATURE_INVALID, SIGNATURE_EXPIRED, SIGNATURE_REPLAY, FORBIDDEN, NOT_FOUND, METHOD_NOT_ALLOWED, CONFLICT, PAYLOAD_TOO_LARGE, TOO_MANY_REQUESTS, UNAVAILABLE, INTERNAL_ERROR
         message: { type: string }
         details:
           type: object
@@ -1193,9 +1231,13 @@ components:
         created_at: { type: string, format: date-time }
     Auth:
       type: object
-      required: [access_token, token_type, expires_in, user]
+      required: [access_token, signing_key, token_type, expires_in, user]
       properties:
         access_token: { type: string }
+        signing_key:
+          type: string
+          description: Kunci tanda tangan request (base64url, 32 byte) yang hanya berlaku untuk access_token ini. Simpan di memori, bukan di penyimpanan permanen.
+          example: AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyA
         token_type: { type: string, enum: [Bearer] }
         expires_in: { type: integer, description: Detik }
         user: { $ref: '#/components/schemas/User' }

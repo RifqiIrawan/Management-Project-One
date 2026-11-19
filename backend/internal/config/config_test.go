@@ -164,3 +164,32 @@ func TestListenHost(t *testing.T) {
 		})
 	}
 }
+
+func TestSignatureModeDefaultsAndValidation(t *testing.T) {
+	baseEnv(t)
+	os.Unsetenv("API_SIGNATURE")
+	if c, err := Load(); err != nil || c.SignatureMode != "optional" || c.SignatureSkew.Minutes() != 5 {
+		t.Fatalf("development: default harus optional/5m: %+v %v", c, err)
+	}
+	t.Setenv("APP_ENV", "production")
+	t.Setenv("COOKIE_SECURE", "true")
+	if c, err := Load(); err != nil || c.SignatureMode != "enforce" {
+		t.Fatalf("production: default harus enforce: %+v %v", c, err)
+	}
+	t.Setenv("API_SIGNATURE", " OFF ")
+	if c, err := Load(); err != nil || c.SignatureMode != "off" {
+		t.Fatalf("override (huruf besar/spasi dinormalisasi) harus off: %+v %v", c, err)
+	}
+	for _, kv := range [][2]string{{"API_SIGNATURE", "wajib"}, {"API_SIGNATURE_SKEW", "0"}, {"API_SIGNATURE_SKEW", "2h"}, {"API_SIGNATURE_SKEW", "abc"}} {
+		baseEnv(t)
+		t.Setenv(kv[0], kv[1])
+		if _, err := Load(); err == nil {
+			t.Errorf("%s=%q harus ditolak", kv[0], kv[1])
+		}
+	}
+	baseEnv(t)
+	t.Setenv("API_SIGNATURE_SKEW", "-1m")
+	if _, err := Load(); err == nil {
+		t.Error("skew negatif harus ditolak")
+	}
+}

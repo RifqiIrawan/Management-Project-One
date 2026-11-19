@@ -15,6 +15,7 @@ import (
 	"github.com/RifqiIrawan/Management-Project-One/backend/internal/pkg/apperror"
 	"github.com/RifqiIrawan/Management-Project-One/backend/internal/pkg/hash"
 	"github.com/RifqiIrawan/Management-Project-One/backend/internal/pkg/jwt"
+	"github.com/RifqiIrawan/Management-Project-One/backend/internal/pkg/sign"
 	"github.com/RifqiIrawan/Management-Project-One/backend/internal/pkg/validator"
 	"github.com/RifqiIrawan/Management-Project-One/backend/internal/repository"
 )
@@ -27,6 +28,7 @@ type ClientMeta struct {
 
 // Session adalah hasil login/refresh/ganti password.
 type Session struct {
+	SigningKey     string // kunci tanda tangan request untuk AccessToken ini (base64url)
 	AccessToken    string
 	ExpiresIn      int
 	User           *model.User
@@ -180,30 +182,31 @@ func (s *AuthService) ChangePassword(ctx context.Context, userID string, req dto
 	return s.issueSession(ctx, u, meta)
 }
 
-// Authenticate memvalidasi access token dan mengembalikan user-nya.
-func (s *AuthService) Authenticate(ctx context.Context, raw string) (*model.User, error) {
+// Authenticate memvalidasi access token dan mengembalikan user beserta claims-nya
+// (claims.ID = jti, dipakai verifikasi tanda tangan request).
+func (s *AuthService) Authenticate(ctx context.Context, raw string) (*model.User, *jwt.Claims, error) {
 	claims, err := s.jwt.ParseAccess(raw)
 	if err != nil {
 		if errors.Is(err, jwt.ErrExpired) {
-			return nil, apperror.ErrTokenExpired
+			return nil, nil, apperror.ErrTokenExpired
 		}
-		return nil, apperror.ErrUnauthorized
+		return nil, nil, apperror.ErrUnauthorized
 	}
 	u, err := s.users.FindByID(ctx, claims.Subject)
 	if err != nil {
 		if errors.Is(err, apperror.ErrNotFound) {
-			return nil, apperror.ErrUnauthorized
+			return nil, nil, apperror.ErrUnauthorized
 		}
-		return nil, err
+		return nil, nil, err
 	}
 	if u.TokenVersion != claims.Ver {
-		return nil, apperror.ErrUnauthorized
+		return nil, nil, apperror.ErrUnauthorized
 	}
-	return u, nil
+	return u, claims, nil
 }
 
 func (s *AuthService) issueSession(ctx context.Context, u *model.User, meta ClientMeta) (*Session, error) {
-	access, exp, err := s.jwt.NewAccess(u.ID, u.TokenVersion)
+	access, exp, jti, err := s.jwt.NewAccess(u.ID, u.TokenVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -223,6 +226,7 @@ func (s *AuthService) issueSession(ctx context.Context, u *model.User, meta Clie
 		return nil, err
 	}
 	return &Session{
+		SigningKey:     sign.EncodeKey(sign.DeriveKey(s.cfg.JWTSecret, jti)),
 		AccessToken:    access,
 		ExpiresIn:      int(time.Until(exp).Seconds()),
 		User:           u,

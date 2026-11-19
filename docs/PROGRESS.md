@@ -21,10 +21,26 @@ Legenda: ✅ selesai · 🚧 sedang dikerjakan · ⏳ belum dimulai
 | 6 | Kolaborasi | Komentar & riwayat aktivitas (pembacaan), `comment_count` | ✅ | [06-comments-activity](features/06-comments-activity.md) |
 | 7 | Dashboard | Statistik, tugas jatuh tempo, proyek terbaru, aktivitas terbaru (`GET /dashboard`) | ✅ | [07-dashboard](features/07-dashboard.md) |
 | 8 | Rilis | OpenAPI + Swagger UI, rate limit umum, hardening operasional, backup & restore, panduan deploy VPS (tanpa Docker), runner tes | ✅ | [08-release](features/08-release.md) |
+| 9 | Keamanan | Tanda tangan HMAC tiap request (kunci per access token, anti-replay), diatur lewat env | ✅ | [09-request-signing](features/09-request-signing.md) |
 
 ## Frontend
 
-⏳ Dimulai setelah backend MVP selesai.
+🚧 **F1a selesai** (fondasi: Vite 8 + React 19 + TypeScript strict, port 6969, tipe API dihasilkan dari `openapi.yaml` lewat `npm run gen:api`,
+penanda tangan request `src/utils/signature.ts` yang lulus 17 tes termasuk 9 vektor yang sama dengan Go dan PowerShell; `tsc` dan `vite build` bersih).
+Berikutnya **F1b**: Bootstrap SCSS + tema, klien API (Axios + refresh token + tanda tangan), login/register, route guard, kerangka aplikasi.
+Backend (fitur 0-9) sudah selesai dan kontrak API terkunci di `backend/docs/openapi.yaml`.
+
+Rencana per tahap (tiap tahap diuji dan di-commit sendiri):
+
+| Tahap | Isi |
+|---|---|
+| F1 | Fondasi (Vite, TypeScript, Bootstrap SCSS, tema light/dark, tipe API **dihasilkan dari `openapi.yaml`**), lapisan API dengan refresh token otomatis, **penanda tangan request TypeScript** (wajib lulus `backend/internal/pkg/sign/testdata/vectors.json`), login/register, route guard, kerangka aplikasi (sidebar, topbar, breadcrumb) |
+| F2 | Dashboard, daftar proyek, pengaturan proyek, anggota |
+| F3 | Kanban (drag & drop), tabel tugas, filter, panel detail tugas, komentar & aktivitas |
+| F4 | Tugas Saya, profil, pencarian cepat (Ctrl+K), shortcut keyboard, empty state, skeleton, responsif |
+
+Catatan teknis untuk frontend: kirim `X-Signature`, `X-Timestamp`, `X-Nonce` pada setiap request terautentikasi dengan `signing_key` dari login/refresh (disimpan di memori bersama access token);
+saat menerima `SIGNATURE_EXPIRED`, sinkronkan jam dengan header `Date` respons lalu ulangi sekali. Gunakan `@noble/hashes` (HMAC/SHA-256 sinkron, jalan di HTTP non-secure) alih-alih WebCrypto.
 
 ## Aturan dokumentasi
 1. Setiap fitur = satu file `docs/features/NN-nama-fitur.md` (pakai [`_template.md`](features/_template.md)).

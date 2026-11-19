@@ -11,7 +11,10 @@ import (
 	"github.com/RifqiIrawan/Management-Project-One/backend/internal/service"
 )
 
-const userKey = "current_user"
+const (
+	userKey     = "current_user"
+	tokenJTIKey = "token_jti"
+)
 
 // Auth memverifikasi header "Authorization: Bearer <access_token>".
 func Auth(svc *service.AuthService) gin.HandlerFunc {
@@ -21,12 +24,13 @@ func Auth(svc *service.AuthService) gin.HandlerFunc {
 			response.Err(c, apperror.ErrUnauthorized)
 			return
 		}
-		u, err := svc.Authenticate(c.Request.Context(), parts[1])
+		u, claims, err := svc.Authenticate(c.Request.Context(), parts[1])
 		if err != nil {
 			response.Err(c, err)
 			return
 		}
 		c.Set(userKey, u)
+		c.Set(tokenJTIKey, claims.ID)
 		c.Next()
 	}
 }

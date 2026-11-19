@@ -3,6 +3,7 @@ package router
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -17,6 +18,7 @@ import (
 	"github.com/RifqiIrawan/Management-Project-One/backend/internal/pkg/apperror"
 	"github.com/RifqiIrawan/Management-Project-One/backend/internal/pkg/jwt"
 	"github.com/RifqiIrawan/Management-Project-One/backend/internal/pkg/response"
+	"github.com/RifqiIrawan/Management-Project-One/backend/internal/pkg/sign"
 	"github.com/RifqiIrawan/Management-Project-One/backend/internal/pkg/validator"
 	"github.com/RifqiIrawan/Management-Project-One/backend/internal/repository"
 	"github.com/RifqiIrawan/Management-Project-One/backend/internal/service"
@@ -67,9 +69,11 @@ func New(cfg *config.Config, db *gorm.DB) (*gin.Engine, error) {
 	r.NoMethod(func(c *gin.Context) { response.Err(c, apperror.ErrNoMethod) })
 	r.Use(middleware.AccessLog(), middleware.Recovery(), middleware.Security(cfg.AppEnv == "production"))
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     cfg.AllowedOrigins,
-		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Authorization", "Content-Type"},
+		AllowOrigins: cfg.AllowedOrigins,
+		AllowMethods: []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders: []string{"Authorization", "Content-Type", "X-Signature", "X-Timestamp", "X-Nonce", "X-Request-ID"},
+		// header respons yang boleh dibaca JavaScript lintas origin (Date dipakai klien untuk sinkronisasi jam)
+		ExposeHeaders:    []string{"Date", "X-Request-ID", "Retry-After", "X-RateLimit-Limit"},
 		AllowCredentials: true,
 	}))
 
@@ -93,7 +97,11 @@ func New(cfg *config.Config, db *gorm.DB) (*gin.Engine, error) {
 	auth.POST("/refresh", authH.Refresh)
 	auth.POST("/logout", authH.Logout)
 
-	private := v1.Group("", middleware.Auth(authSvc))
+	// Urutan: Auth (JWT) -> tanda tangan request -> batas laju per user.
+	private := v1.Group("", middleware.Auth(authSvc), middleware.RequestSignature(middleware.SignatureOptions{
+		Mode: cfg.SignatureMode, Secret: cfg.JWTSecret, Skew: cfg.SignatureSkew,
+		Nonces: sign.NewNonceCache(2*cfg.SignatureSkew+10*time.Second, 1_000_000),
+	}))
 	if cfg.APIRateLimit > 0 {
 		private.Use(middleware.NewKeyLimiter(cfg.APIRateLimit).UserMiddleware()) // batas umum per user
 	}

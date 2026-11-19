@@ -40,6 +40,7 @@ type UserResponse struct {
 
 type AuthResponse struct {
 	AccessToken string       `json:"access_token"`
+	SigningKey  string       `json:"signing_key"`
 	TokenType   string       `json:"token_type"`
 	ExpiresIn   int          `json:"expires_in"`
 	User        UserResponse `json:"user"`

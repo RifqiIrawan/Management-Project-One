@@ -15,33 +15,20 @@ $exe = Join-Path $root 'bin\api.exe'
 if (-not (Test-Path $exe)) { "bin\api.exe tidak ada. Jalankan: cd backend; go build -o bin/api.exe ./cmd/api"; exit 2 }
 $logDir = Join-Path $env:TEMP "mpo-e2e-ops-$([guid]::NewGuid().ToString('N').Substring(0,6))"
 New-Item -ItemType Directory -Force $logDir | Out-Null
+. (Join-Path $PSScriptRoot 'lib\Signing.ps1')
+. (Join-Path $PSScriptRoot 'lib\Server.ps1')
 
 function Check($name, $cond) { if ($cond) { $script:pass++; "PASS  $name" } else { $script:fail++; "FAIL  $name" } }
 
-function Start-Api($name, $port, $vars, $hostName = 'localhost') {
-  $saved = @{}
-  $all = @{ PORT = "$port" } + $vars
-  foreach ($k in $all.Keys) { $saved[$k] = [Environment]::GetEnvironmentVariable($k, 'Process'); [Environment]::SetEnvironmentVariable($k, $all[$k], 'Process') }
-  try {
-    $out = Join-Path $logDir "$name.out.log"; $err = Join-Path $logDir "$name.err.log"
-    $p = Start-Process -FilePath $exe -WorkingDirectory $root -PassThru -WindowStyle Hidden -RedirectStandardOutput $out -RedirectStandardError $err
-  } finally { foreach ($k in $saved.Keys) { [Environment]::SetEnvironmentVariable($k, $saved[$k], 'Process') } }
-  [pscustomobject]@{ Name = $name; Port = $port; Proc = $p; Base = "http://${hostName}:$port/api/v1"; Out = $out; Err = $err }
-}
-function Wait-Healthy($s) {
-  foreach ($i in 1..40) {
-    if ($s.Proc.HasExited) { return $false }
-    try { if ((Invoke-WebRequest "$($s.Base)/health" -UseBasicParsing -TimeoutSec 2).StatusCode -eq 200) { return $true } } catch {}
-    Start-Sleep -Milliseconds 400
-  }
-  $false
-}
 function BodyText($resp) { if ($resp.Content -is [byte[]]) { [Text.Encoding]::UTF8.GetString($resp.Content) } else { [string]$resp.Content } }
-function Stop-Api($s) { if ($s -and $s.Proc -and -not $s.Proc.HasExited) { Stop-Process -Id $s.Proc.Id -Force -ErrorAction SilentlyContinue } }
 function LogText($s) { ((Get-Content $s.Out -Raw -ErrorAction SilentlyContinue) + "`n" + (Get-Content $s.Err -Raw -ErrorAction SilentlyContinue)) }
 
-function Call($s, $method, $path, $body = $null, $token = $null, $headers = @{}) {
+function Call($s, $method, $path, $body = $null, $token = $null, $headers = @{}, $key = $null) {
   $h = @{} + $headers; if ($token) { $h['Authorization'] = "Bearer $token" }
+  if ($key) {
+    $bodyText = if ($null -ne $body) { $body | ConvertTo-Json -Depth 5 } else { '' }
+    foreach ($kv in (New-SignatureHeaders -Method $method -Url "$($s.Base)$path" -Body $bodyText -KeyB64 $key).GetEnumerator()) { $h[$kv.Key] = $kv.Value }
+  }
   $p = @{ Uri = "$($s.Base)$path"; Method = $method; Headers = $h; UseBasicParsing = $true; ErrorAction = 'Stop' }
   if ($null -ne $body) { $p['Body'] = [Text.Encoding]::UTF8.GetBytes(($body | ConvertTo-Json -Depth 5)); $p['ContentType'] = 'application/json; charset=utf-8' }
   $text = ''
@@ -54,7 +41,7 @@ function NewUser($s, $label) {
   $email = "${label}_$([guid]::NewGuid().ToString('N').Substring(0,8))@example.com"; $pw = 'Passw0rdTest1'
   $reg = Call $s POST /auth/register @{ name = "User $label"; email = $email; password = $pw; confirm_password = $pw }
   $l = Call $s POST /auth/login @{ email = $email; password = $pw }
-  [pscustomobject]@{ Email = $email; Id = $reg.Data.id; Token = $l.Data.access_token; Login = $l }
+  [pscustomobject]@{ Email = $email; Id = $reg.Data.id; Token = $l.Data.access_token; Key = $l.Data.signing_key; Login = $l }
 }
 
 $cfg = @{}; $envFile = Join-Path $root '.env'
@@ -174,8 +161,10 @@ INSERT INTO refresh_tokens(user_id, token_hash, expires_at, revoked_at) VALUES
   $swOff = @('/api/openapi.yaml', '/api/docs', '/api/docs/index.html') | ForEach-Object { try { (Invoke-WebRequest "http://127.0.0.1:6992$_" -UseBasicParsing -MaximumRedirection 0 -ErrorAction Stop).StatusCode } catch { [int]$_.Exception.Response.StatusCode } }
   Check "production: semua jalur Swagger 404 ($($swOff -join ','))" (@($swOff | Where-Object { $_ -eq 404 }).Count -eq 3)
   $C = NewUser $S2 'prod'
+  Check 'production: mode tanda tangan default ENFORCE (tanpa tanda tangan -> 401 SIGNATURE_REQUIRED)' ((Call $S2 GET /me $null $C.Token).Err.code -eq 'SIGNATURE_REQUIRED')
+  Check 'production: request bertanda tangan diterima' ((Call $S2 GET /me $null $C.Token @{} $C.Key).Status -eq 200)
   Check 'production: cookie refresh_token memakai atribut Secure + HttpOnly + SameSite=Strict' ($C.Login.Headers['Set-Cookie'] -match 'Secure' -and $C.Login.Headers['Set-Cookie'] -match 'HttpOnly' -and $C.Login.Headers['Set-Cookie'] -match 'SameSite=Strict')
-  $codes = 1..40 | ForEach-Object { (Call $S2 GET /me $null $C.Token).Status }
+  $codes = 1..40 | ForEach-Object { (Call $S2 GET /me $null $C.Token @{} $C.Key).Status }
   Check 'production dengan API_RATE_LIMIT_PER_MIN=0: batas umum nonaktif (40 request lolos)' (@($codes | Where-Object { $_ -eq 200 }).Count -eq 40)
   Start-Sleep -Milliseconds 500
   $lines = @(Get-Content $S2.Out -ErrorAction SilentlyContinue | Where-Object { $_.Trim() -ne '' })

@@ -108,6 +108,7 @@ func (h *AuthHandler) sendSession(c *gin.Context, s *service.Session) {
 	c.SetCookie(refreshCookie, s.RefreshToken, maxAge, cookiePath, "", h.cfg.CookieSecure, true)
 	response.OK(c, http.StatusOK, dto.AuthResponse{
 		AccessToken: s.AccessToken,
+		SigningKey:  s.SigningKey,
 		TokenType:   "Bearer",
 		ExpiresIn:   s.ExpiresIn,
 		User:        dto.NewUserResponse(s.User),

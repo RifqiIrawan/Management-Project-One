@@ -12,13 +12,16 @@ const secret = "0123456789abcdef0123456789abcdef"
 
 func TestAccessTokenRoundTrip(t *testing.T) {
 	m := NewManager(secret, "mpo", time.Minute)
-	tok, _, err := m.NewAccess("user-1", 3)
+	tok, _, jti, err := m.NewAccess("user-1", 3)
 	if err != nil {
 		t.Fatal(err)
 	}
 	c, err := m.ParseAccess(tok)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if jti == "" || c.ID != jti {
+		t.Fatalf("jti yang dikembalikan harus sama dengan claim jti: %q vs %q", jti, c.ID)
 	}
 	if c.Subject != "user-1" || c.Ver != 3 {
 		t.Fatalf("claims salah: %+v", c)
@@ -27,14 +30,14 @@ func TestAccessTokenRoundTrip(t *testing.T) {
 
 func TestAccessTokenExpired(t *testing.T) {
 	m := NewManager(secret, "mpo", -time.Minute)
-	tok, _, _ := m.NewAccess("user-1", 0)
+	tok, _, _, _ := m.NewAccess("user-1", 0)
 	if _, err := m.ParseAccess(tok); !errors.Is(err, ErrExpired) {
 		t.Fatalf("harus ErrExpired, dapat %v", err)
 	}
 }
 
 func TestAccessTokenWrongSecretOrIssuer(t *testing.T) {
-	tok, _, _ := NewManager(secret, "mpo", time.Minute).NewAccess("u", 0)
+	tok, _, _, _ := NewManager(secret, "mpo", time.Minute).NewAccess("u", 0)
 	if _, err := NewManager("another-secret-another-secret-123", "mpo", time.Minute).ParseAccess(tok); !errors.Is(err, ErrInvalid) {
 		t.Fatalf("secret beda harus ditolak, dapat %v", err)
 	}

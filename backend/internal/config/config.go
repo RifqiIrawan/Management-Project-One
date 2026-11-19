@@ -38,6 +38,9 @@ type Config struct {
 	TrustedProxies  []string      // IP/CIDR reverse proxy yang boleh menentukan IP klien (X-Forwarded-For)
 	SwaggerEnabled  bool          // sajikan Swagger UI + openapi.yaml
 	CleanupInterval time.Duration // interval pembersihan refresh token kedaluwarsa; 0 = nonaktif
+
+	SignatureMode string        // off | optional | enforce (tanda tangan HMAC request)
+	SignatureSkew time.Duration // toleransi selisih jam klien-server
 }
 
 // Load membaca .env (jika ada) lalu environment variable.
@@ -106,6 +109,20 @@ func Load() (*Config, error) {
 	}
 	if c.CleanupInterval, err = time.ParseDuration(get("TOKEN_CLEANUP_INTERVAL", "1h")); err != nil || c.CleanupInterval < 0 {
 		return nil, fmt.Errorf("TOKEN_CLEANUP_INTERVAL harus durasi >= 0 (mis. 1h, 0 = nonaktif)")
+	}
+	// Tanda tangan request: wajib di production, opsional (diverifikasi bila ada) di development.
+	defMode := "optional"
+	if c.AppEnv == "production" {
+		defMode = "enforce"
+	}
+	c.SignatureMode = strings.ToLower(strings.TrimSpace(get("API_SIGNATURE", defMode)))
+	switch c.SignatureMode {
+	case "off", "optional", "enforce":
+	default:
+		return nil, fmt.Errorf("API_SIGNATURE harus off, optional, atau enforce")
+	}
+	if c.SignatureSkew, err = time.ParseDuration(get("API_SIGNATURE_SKEW", "5m")); err != nil || c.SignatureSkew <= 0 || c.SignatureSkew > time.Hour {
+		return nil, fmt.Errorf("API_SIGNATURE_SKEW harus durasi > 0 dan <= 1h (mis. 5m)")
 	}
 	return c, nil
 }

@@ -94,6 +94,8 @@ JWT_SECRET=<hasil: openssl rand -hex 32>
 COOKIE_SECURE=true                  # WAJIB true di production (server menolak start bila false)
 CORS_ORIGINS=https://app.example.com
 TRUSTED_PROXIES=127.0.0.1           # IP reverse proxy; tanpa ini semua klien terlihat sebagai 127.0.0.1
+# API_SIGNATURE tidak diisi: production otomatis ENFORCE (tiap request terautentikasi wajib bertanda tangan HMAC).
+# Jam server harus akurat (NTP: timedatectl set-ntp true); toleransi API_SIGNATURE_SKEW default 5 menit.
 APP_TIMEZONE=Asia/Jakarta
 API_RATE_LIMIT_PER_MIN=100
 # SWAGGER_ENABLED=true              # hanya bila ingin dokumentasi API terbuka di production

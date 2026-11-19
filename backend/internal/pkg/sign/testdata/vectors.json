@@ -1,0 +1,123 @@
+{
+  "description": "Vektor uji tanda tangan request. Dihitung dengan Node crypto (independen dari implementasi Go & TypeScript).",
+  "keyBase64Url": "AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyA",
+  "cases": [
+    {
+      "name": "GET sederhana tanpa query dan body",
+      "method": "GET",
+      "path": "/api/v1/me",
+      "query": "",
+      "body": "",
+      "ts": "1700000000",
+      "nonce": "0123456789abcdef",
+      "canonicalQuery": "",
+      "bodyHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "canonical": "mpo1\nGET\n/api/v1/me\n\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\n1700000000\n0123456789abcdef",
+      "signature": "c208781940c986d9e8744da3d659aa18c985265a311e6b20e517a46f0163ee82"
+    },
+    {
+      "name": "POST dengan body JSON",
+      "method": "POST",
+      "path": "/api/v1/projects/4f1c9a52-8d3e-4b6a-9c11-0a1b2c3d4e5f/tasks",
+      "query": "",
+      "body": "{\"title\":\"Halo\",\"priority\":\"high\"}",
+      "ts": "1700000123",
+      "nonce": "AbCdEfGhIjKlMnOp",
+      "canonicalQuery": "",
+      "bodyHash": "2d4c54a11bafe2153b7322902a93837d472f2bac8cab936926016f682d8cfa63",
+      "canonical": "mpo1\nPOST\n/api/v1/projects/4f1c9a52-8d3e-4b6a-9c11-0a1b2c3d4e5f/tasks\n\n2d4c54a11bafe2153b7322902a93837d472f2bac8cab936926016f682d8cfa63\n1700000123\nAbCdEfGhIjKlMnOp",
+      "signature": "e3a0f052b9a6ec72634d236ce913619d5167fbf132c909c8cc1755a028b66905"
+    },
+    {
+      "name": "query tidak berurutan dan duplikat diurutkan",
+      "method": "GET",
+      "path": "/api/v1/projects",
+      "query": "z=1&a=2&a=1",
+      "body": "",
+      "ts": "1700000000",
+      "nonce": "nonce-0000000001",
+      "canonicalQuery": "a=1&a=2&z=1",
+      "bodyHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "canonical": "mpo1\nGET\n/api/v1/projects\na=1&a=2&z=1\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\n1700000000\nnonce-0000000001",
+      "signature": "c3f469283db907bfbf7725e28f62a7499695120a8ac500bb63a1748be33f0909"
+    },
+    {
+      "name": "spasi, plus, @, dan unicode di query",
+      "method": "GET",
+      "path": "/api/v1/users/search",
+      "query": "q=halo+dunia&e=a%40b.co&u=%E2%9C%93",
+      "body": "",
+      "ts": "1700000000",
+      "nonce": "nonce-0000000002",
+      "canonicalQuery": "e=a%40b.co&q=halo%20dunia&u=%E2%9C%93",
+      "bodyHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "canonical": "mpo1\nGET\n/api/v1/users/search\ne=a%40b.co&q=halo%20dunia&u=%E2%9C%93\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\n1700000000\nnonce-0000000002",
+      "signature": "521c1bd599928e1cb6bf3c3ddcf5d81f7df16affb80c3abbb2fae4740754ef03"
+    },
+    {
+      "name": "parameter tanpa nilai",
+      "method": "GET",
+      "path": "/api/v1/projects",
+      "query": "flag&x=",
+      "body": "",
+      "ts": "1700000000",
+      "nonce": "nonce-0000000003",
+      "canonicalQuery": "flag=&x=",
+      "bodyHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "canonical": "mpo1\nGET\n/api/v1/projects\nflag=&x=\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\n1700000000\nnonce-0000000003",
+      "signature": "1868fe9f920f3f09a2f378ed6d53e3630b359042f1f046e2611c62f6dfa73dfa"
+    },
+    {
+      "name": "karakter unreserved tidak di-encode",
+      "method": "GET",
+      "path": "/api/v1/projects",
+      "query": "t=a~b-c_d.e",
+      "body": "",
+      "ts": "1700000000",
+      "nonce": "nonce-0000000004",
+      "canonicalQuery": "t=a~b-c_d.e",
+      "bodyHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "canonical": "mpo1\nGET\n/api/v1/projects\nt=a~b-c_d.e\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\n1700000000\nnonce-0000000004",
+      "signature": "1622f691c35bb955c0f117cf496e16257aeb9cb68533f88c8244997ad90559d6"
+    },
+    {
+      "name": "body unicode dan emoji (UTF-8)",
+      "method": "PATCH",
+      "path": "/api/v1/me",
+      "query": "",
+      "body": "{\"name\":\"Rifqi 🚀 Irawan\"}",
+      "ts": "1700000000",
+      "nonce": "nonce-0000000005",
+      "canonicalQuery": "",
+      "bodyHash": "22d09f69db57eb386a5cea23447ac61e1e77fa00332d44f45bbe5526234cb2e3",
+      "canonical": "mpo1\nPATCH\n/api/v1/me\n\n22d09f69db57eb386a5cea23447ac61e1e77fa00332d44f45bbe5526234cb2e3\n1700000000\nnonce-0000000005",
+      "signature": "55f249b0965276015685b73f72562a649baacd1048302b6679ffbe1b90b93e5a"
+    },
+    {
+      "name": "path ber-escape dipertahankan apa adanya",
+      "method": "GET",
+      "path": "/api/v1/projects/a%20b",
+      "query": "q=%2F",
+      "body": "",
+      "ts": "1700000000",
+      "nonce": "nonce-0000000006",
+      "canonicalQuery": "q=%2F",
+      "bodyHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "canonical": "mpo1\nGET\n/api/v1/projects/a%20b\nq=%2F\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\n1700000000\nnonce-0000000006",
+      "signature": "53ad6a5d862101b6edc2d1d83dda274ff09ba26eef26752a20e28f3fd7e8d551"
+    },
+    {
+      "name": "koma dan titik dua di query (filter tugas)",
+      "method": "GET",
+      "path": "/api/v1/projects/p/tasks",
+      "query": "status=todo,in_progress&sort=-due_date&due=a:b",
+      "body": "",
+      "ts": "1700000000",
+      "nonce": "nonce-0000000007",
+      "canonicalQuery": "due=a%3Ab&sort=-due_date&status=todo%2Cin_progress",
+      "bodyHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "canonical": "mpo1\nGET\n/api/v1/projects/p/tasks\ndue=a%3Ab&sort=-due_date&status=todo%2Cin_progress\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\n1700000000\nnonce-0000000007",
+      "signature": "85d278fc753e717cc9f20e77ff9d5dab917ecf83d8f00158131bb66512256108"
+    }
+  ]
+}

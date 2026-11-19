@@ -32,13 +32,14 @@ func NewManager(secret, issuer string, accessTTL time.Duration) *Manager {
 	return &Manager{secret: []byte(secret), issuer: issuer, accessTTL: accessTTL}
 }
 
-// NewAccess membuat access token HS256 untuk user.
-func (m *Manager) NewAccess(userID string, ver int) (string, time.Time, error) {
+// NewAccess membuat access token HS256 dan mengembalikan token, waktu kedaluwarsa, serta jti-nya
+// (jti dipakai menurunkan kunci tanda tangan request untuk token ini).
+func (m *Manager) NewAccess(userID string, ver int) (string, time.Time, string, error) {
 	now := time.Now()
 	exp := now.Add(m.accessTTL)
 	jti, err := randomHex(16)
 	if err != nil {
-		return "", time.Time{}, err
+		return "", time.Time{}, "", err
 	}
 	claims := Claims{
 		Ver: ver,
@@ -52,9 +53,9 @@ func (m *Manager) NewAccess(userID string, ver int) (string, time.Time, error) {
 	}
 	signed, err := gojwt.NewWithClaims(gojwt.SigningMethodHS256, claims).SignedString(m.secret)
 	if err != nil {
-		return "", time.Time{}, fmt.Errorf("sign access token: %w", err)
+		return "", time.Time{}, "", fmt.Errorf("sign access token: %w", err)
 	}
-	return signed, exp, nil
+	return signed, exp, jti, nil
 }
 
 // ParseAccess memvalidasi algoritma (HS256), issuer, dan expiry.

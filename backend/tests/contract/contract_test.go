@@ -5,18 +5,25 @@
 // Opt-in (butuh server + database). Jalankan server pada instance BARU (batas login/register 5/menit/IP
 // dihitung per proses) dengan batas API umum dimatikan, lalu:
 //
-//	API_RATE_LIMIT_PER_MIN=0 go run ./cmd/api
-//	CONTRACT_BASE_URL=http://localhost:6990 go test ./tests/contract/ -v -count=1
+//	API_RATE_LIMIT_PER_MIN=0 API_SIGNATURE=enforce go run ./cmd/api
+//	CONTRACT_BASE_URL=http://localhost:6990 CONTRACT_EXPECT_ENFORCE=1 go test ./tests/contract/ -v -count=1
+//
+// Semua request terautentikasi DITANDATANGANI (HMAC, kunci dari login/refresh). Dengan CONTRACT_EXPECT_ENFORCE=1
+// tes juga memeriksa respons error tanda tangan (SIGNATURE_REQUIRED/INVALID/EXPIRED/REPLAY) terhadap spesifikasi;
+// jalankan server dengan API_SIGNATURE=enforce agar kasus itu berlaku.
 package contract
 
 import (
 	"bytes"
 	"context"
+	crand "crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
 	"math/rand"
 	"net/http"
+	"net/url"
 	"os"
 	"sort"
 	"strings"
@@ -29,6 +36,7 @@ import (
 	"github.com/getkin/kin-openapi/routers/legacy"
 
 	"github.com/RifqiIrawan/Management-Project-One/backend/docs"
+	"github.com/RifqiIrawan/Management-Project-One/backend/internal/pkg/sign"
 )
 
 type api struct {
@@ -36,6 +44,8 @@ type api struct {
 	base    string
 	router  routers.Router
 	covered map[string]bool
+	keys    map[string]string   // access token -> signing_key (base64url); request dengan token ini otomatis ditandatangani
+	mutate  func(*http.Request) // dipakai kasus negatif: mengubah request SETELAH ditandatangani
 }
 
 type result struct {
@@ -75,21 +85,20 @@ func newAPI(t *testing.T, base string) *api {
 	if err != nil {
 		t.Fatalf("router spesifikasi: %v", err)
 	}
-	return &api{t: t, base: base, router: rt, covered: map[string]bool{}}
+	return &api{t: t, base: base, router: rt, covered: map[string]bool{}, keys: map[string]string{}}
 }
 
 func (a *api) newRequest(method, path string, body any, token, cookie string) *http.Request {
-	var rd io.Reader
+	var raw []byte
 	if body != nil {
 		switch b := body.(type) {
 		case string:
-			rd = strings.NewReader(b)
+			raw = []byte(b)
 		default:
-			raw, _ := json.Marshal(b)
-			rd = bytes.NewReader(raw)
+			raw, _ = json.Marshal(b)
 		}
 	}
-	req, err := http.NewRequest(method, a.base+"/api/v1"+path, rd)
+	req, err := http.NewRequest(method, a.base+"/api/v1"+path, bytes.NewReader(raw))
 	if err != nil {
 		a.t.Fatal(err)
 	}
@@ -98,6 +107,9 @@ func (a *api) newRequest(method, path string, body any, token, cookie string) *h
 	}
 	if token != "" {
 		req.Header.Set("Authorization", "Bearer "+token)
+		if key, ok := a.keys[token]; ok {
+			a.signAt(req, key, raw, time.Now(), "")
+		}
 	}
 	if cookie != "" {
 		req.AddCookie(&http.Cookie{Name: "refresh_token", Value: cookie})
@@ -105,11 +117,50 @@ func (a *api) newRequest(method, path string, body any, token, cookie string) *h
 	return req
 }
 
+// signAt menambahkan X-Timestamp, X-Nonce, X-Signature. nonce kosong = dibuat acak.
+func (a *api) signAt(req *http.Request, keyB64 string, body []byte, at time.Time, nonce string) {
+	key, err := sign.DecodeKey(keyB64)
+	if err != nil {
+		a.t.Fatalf("signing_key tidak valid: %v", err)
+	}
+	if nonce == "" {
+		b := make([]byte, 16)
+		if _, err := crand.Read(b); err != nil {
+			a.t.Fatal(err)
+		}
+		nonce = hex.EncodeToString(b)
+	}
+	q, err := url.ParseQuery(req.URL.RawQuery)
+	if err != nil {
+		a.t.Fatal(err)
+	}
+	ts := fmt.Sprint(at.Unix())
+	canon := sign.Canonical(req.Method, req.URL.EscapedPath(), sign.CanonicalQuery(q), sign.BodyHash(body), ts, nonce)
+	req.Header.Set("X-Timestamp", ts)
+	req.Header.Set("X-Nonce", nonce)
+	req.Header.Set("X-Signature", sign.Sign(key, canon))
+}
+
+// remember mencatat signing_key milik access token pada respons autentikasi (login/refresh/ganti password).
+func (a *api) remember(r result) string {
+	d := r.data()
+	tok, _ := d["access_token"].(string)
+	key, _ := d["signing_key"].(string)
+	if tok == "" || key == "" {
+		a.t.Fatalf("respons autentikasi harus memuat access_token dan signing_key: %s", r.Raw)
+	}
+	a.keys[tok] = key
+	return tok
+}
+
 // do mengirim request, lalu memastikan (1) request sesuai spesifikasi bila validReq, (2) respons sesuai
 // spesifikasi termasuk bahwa status tersebut terdokumentasi, dan (3) status sama dengan want.
 func (a *api) do(want int, method, path string, body any, token, cookie string, validReq bool) result {
 	a.t.Helper()
 	req := a.newRequest(method, path, body, token, cookie)
+	if a.mutate != nil {
+		a.mutate(req)
+	}
 	route, params, err := a.router.FindRoute(a.newRequest(method, path, nil, "", ""))
 	if err != nil {
 		a.t.Fatalf("%s %s: tidak ada di openapi.yaml: %v", method, path, err)
@@ -182,7 +233,7 @@ func (a *api) newUser(label string) user {
 		"name": "Contract " + label, "email": email, "password": "Passw0rdContract1", "confirm_password": "Passw0rdContract1",
 	}, "")
 	login := a.ok(200, "POST", "/auth/login", map[string]any{"email": email, "password": "Passw0rdContract1"}, "")
-	return user{email: email, id: reg.str("id"), token: login.data()["access_token"].(string), cookie: refreshCookie(login)}
+	return user{email: email, id: reg.str("id"), token: a.remember(login), cookie: refreshCookie(login)}
 }
 
 func randKey() string {
@@ -215,11 +266,11 @@ func TestAPIConformsToOpenAPI(t *testing.T) {
 	a.bad(401, "POST", "/auth/login", map[string]any{"email": A.email, "password": "SalahBanget1"}, "") // login 4
 
 	ref := a.do(200, "POST", "/auth/refresh", nil, "", A.cookie, true)
-	A.token, A.cookie = ref.data()["access_token"].(string), refreshCookie(ref)
+	A.token, A.cookie = a.remember(ref), refreshCookie(ref)
 	a.bad(401, "POST", "/auth/refresh", nil, "")
 	a.do(200, "POST", "/auth/logout", nil, "", A.cookie, true)
 	relog := a.ok(200, "POST", "/auth/login", map[string]any{"email": A.email, "password": "Passw0rdContract1"}, "") // login 5
-	A.token, A.cookie = relog.data()["access_token"].(string), refreshCookie(relog)
+	A.token, A.cookie = a.remember(relog), refreshCookie(relog)
 	r429 := a.bad(429, "POST", "/auth/login", map[string]any{"email": A.email, "password": "x"}, "") // login 6 -> dibatasi
 	if r429.Header.Get("Retry-After") == "" {
 		t.Error("429 harus menyertakan Retry-After")
@@ -232,7 +283,53 @@ func TestAPIConformsToOpenAPI(t *testing.T) {
 	a.bad(400, "PATCH", "/me", map[string]any{"avatar_color": "merah"}, A.token)
 	a.bad(400, "PATCH", "/me/password", map[string]any{"current_password": "salah", "new_password": "Passw0rdBaru2", "confirm_password": "Passw0rdBaru2"}, A.token)
 	pw := a.ok(200, "PATCH", "/me/password", map[string]any{"current_password": "Passw0rdContract1", "new_password": "Passw0rdBaru2", "confirm_password": "Passw0rdBaru2"}, A.token)
-	A.token = pw.data()["access_token"].(string)
+	A.token = a.remember(pw)
+	if pw.data()["signing_key"] == a.keys[ref.data()["access_token"].(string)] {
+		t.Error("ganti password harus menghasilkan signing_key baru")
+	}
+
+	// ---------------------------------------------------------- tanda tangan request (hanya bila server enforce)
+	if os.Getenv("CONTRACT_EXPECT_ENFORCE") == "1" {
+		errCode := func(r result) string {
+			e, _ := r.JSON["error"].(map[string]any)
+			c, _ := e["code"].(string)
+			return c
+		}
+		tok := A.token
+		key := a.keys[tok]
+
+		delete(a.keys, tok) // tanpa tanda tangan sama sekali
+		if c := errCode(a.bad(401, "GET", "/me", nil, tok)); c != "SIGNATURE_REQUIRED" {
+			t.Errorf("tanpa tanda tangan: kode %q, harapan SIGNATURE_REQUIRED", c)
+		}
+		a.keys[tok] = key
+
+		a.mutate = func(req *http.Request) { req.Header.Set("X-Signature", strings.Repeat("0", 64)) }
+		if c := errCode(a.bad(401, "GET", "/me", nil, tok)); c != "SIGNATURE_INVALID" {
+			t.Errorf("tanda tangan salah: kode %q, harapan SIGNATURE_INVALID", c)
+		}
+		a.mutate = func(req *http.Request) { a.signAt(req, key, nil, time.Now().Add(-10*time.Minute), "") }
+		if c := errCode(a.bad(401, "GET", "/me", nil, tok)); c != "SIGNATURE_EXPIRED" {
+			t.Errorf("waktu kedaluwarsa: kode %q, harapan SIGNATURE_EXPIRED", c)
+		}
+		var first http.Header
+		a.mutate = func(req *http.Request) {
+			if first == nil {
+				first = req.Header.Clone()
+				return
+			}
+			for _, h := range []string{"X-Signature", "X-Timestamp", "X-Nonce"} {
+				req.Header.Set(h, first.Get(h))
+			}
+		}
+		a.ok(200, "GET", "/me", nil, tok)
+		if c := errCode(a.bad(401, "GET", "/me", nil, tok)); c != "SIGNATURE_REPLAY" {
+			t.Errorf("pengiriman ulang: kode %q, harapan SIGNATURE_REPLAY", c)
+		}
+		a.mutate = nil
+	} else {
+		t.Log("CONTRACT_EXPECT_ENFORCE tidak diisi: kasus error tanda tangan dilewati")
+	}
 	a.ok(200, "GET", "/users/search?email="+strings.Split(B.email, "_")[0], nil, A.token)
 	a.bad(400, "GET", "/users/search?email=ab", nil, A.token)
 
