@@ -61,11 +61,11 @@ curl localhost:8080/api/v1/me -H "Authorization: Bearer <access_token>"
 ```
 
 ## Testing
-- Unit: `go test ./...` → `pkg/jwt` (round-trip, expired, secret/issuer salah, `alg:none`, refresh hash) dan `pkg/validator` (aturan password).
-- End-to-end terhadap server + PostgreSQL asli (32 skenario): register (201, email lowercase, duplikat 409, validasi 400, tanpa `password_hash`), login (cookie HttpOnly + SameSite=Strict, pesan error sama untuk email tak terdaftar), `/me` tanpa/palsu/valid token, ubah profil, refresh + rotasi, **token lama dipakai ulang → semua sesi dicabut**, logout, ganti password (token & sesi lama mati, sesi perangkat ini tetap hidup), logout-all, dan rate limit login → 429.
+- Unit: `go test ./...` → `pkg/jwt` (round-trip, expired, secret/issuer salah, `alg:none`, refresh hash), `pkg/validator` (aturan password), `config` (tolak secret contoh/pendek, `COOKIE_SECURE` wajib di production, escape password di URL migrasi).
+- End-to-end: jalankan server lalu `powershell -File backend/tests/e2e_auth.ps1` (server + PostgreSQL asli, ±2 menit karena menunggu rate limiter). Skenario: register (201, email lowercase, duplikat 409, validasi 400, tanpa `password_hash`), login (cookie HttpOnly + SameSite=Strict, pesan error sama untuk email tak terdaftar), `/me` tanpa/palsu/valid token, ubah profil, refresh + rotasi, **token lama dipakai ulang → semua sesi dicabut**, logout, ganti password (token & sesi lama mati, sesi perangkat ini tetap hidup), logout-all, dan rate limit login → 429.
 - Pelajaran: cek 401 pada refresh harus memverifikasi pesan error ("Sesi tidak valid"), bukan hanya status, agar tidak lolos karena alasan yang salah.
 
 ## Catatan & keputusan
-- Rate limit di memori (per proses); cukup untuk satu instance. Perlu Redis bila di-scale horizontal.
+- Rate limit di memori (per proses); cukup untuk satu instance. Perlu Redis bila di-scale horizontal. Di balik reverse proxy (produksi) `ClientIP` akan berisi IP proxy: set trusted proxies yang benar sebelum deploy, kalau tidak semua user berbagi satu kuota.`n- Baris `refresh_tokens` yang kedaluwarsa/dicabut belum dibersihkan otomatis (job pembersihan dijadwalkan di fase rilis).`n- `go test -race` belum bisa dijalankan di mesin ini (tidak ada compiler C / cgo).
 - Rate limit 5/menit dipasang terpisah untuk `/register` dan `/login`.
 - Belum ada: lupa password via email (v1.1), unit test service dengan mock repository (dijadwalkan di fase testing).

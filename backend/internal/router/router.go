@@ -40,7 +40,10 @@ func New(cfg *config.Config, db *gorm.DB) (*gin.Engine, error) {
 
 	r := gin.New()
 	_ = r.SetTrustedProxies(nil) // ClientIP = alamat koneksi asli (anti spoof X-Forwarded-For)
-	r.Use(gin.Logger(), gin.Recovery(), middleware.Security())
+	r.HandleMethodNotAllowed = true
+	r.NoRoute(func(c *gin.Context) { response.Err(c, apperror.ErrNoRoute) })
+	r.NoMethod(func(c *gin.Context) { response.Err(c, apperror.ErrNoMethod) })
+	r.Use(gin.Logger(), middleware.Recovery(), middleware.Security())
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     cfg.AllowedOrigins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},

@@ -32,7 +32,8 @@ type Config struct {
 
 // Load membaca .env (jika ada) lalu environment variable.
 func Load() (*Config, error) {
-	_ = godotenv.Load()
+	_ = godotenv.Load()               // dijalankan dari folder backend/
+	_ = godotenv.Load("backend/.env") // dijalankan dari root repo
 
 	c := &Config{
 		AppEnv:         get("APP_ENV", "development"),
@@ -50,8 +51,11 @@ func Load() (*Config, error) {
 	if c.DBPassword == "" {
 		return nil, fmt.Errorf("DB_PASSWORD wajib diisi (lihat .env.example)")
 	}
-	if len(c.JWTSecret) < 32 {
-		return nil, fmt.Errorf("JWT_SECRET wajib diisi, minimal 32 karakter acak")
+	if len(c.JWTSecret) < 32 || strings.HasPrefix(c.JWTSecret, placeholderPrefix) {
+		return nil, fmt.Errorf("JWT_SECRET wajib diisi dengan string acak minimal 32 karakter (bukan nilai contoh); buat dengan: openssl rand -hex 32")
+	}
+	if strings.HasPrefix(c.DBPassword, placeholderPrefix) {
+		return nil, fmt.Errorf("DB_PASSWORD masih berisi nilai contoh dari .env.example")
 	}
 
 	var err error
@@ -67,8 +71,14 @@ func Load() (*Config, error) {
 	if c.BcryptCost, err = strconv.Atoi(get("BCRYPT_COST", "12")); err != nil || c.BcryptCost < 10 || c.BcryptCost > 14 {
 		return nil, fmt.Errorf("BCRYPT_COST harus angka 10-14")
 	}
+	if c.AppEnv == "production" && !c.CookieSecure {
+		return nil, fmt.Errorf("COOKIE_SECURE harus true saat APP_ENV=production")
+	}
 	return c, nil
 }
+
+// placeholderPrefix menandai nilai contoh di .env.example yang tidak boleh dipakai.
+const placeholderPrefix = "ganti_dengan"
 
 func (c *Config) DSN() string {
 	return fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s TimeZone=UTC",

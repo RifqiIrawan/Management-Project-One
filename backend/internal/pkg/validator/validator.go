@@ -3,6 +3,7 @@ package validator
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"reflect"
 	"strings"
 	"unicode"
@@ -27,7 +28,7 @@ var labels = map[string]string{
 func Init() {
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
 		v.RegisterTagNameFunc(func(f reflect.StructField) string {
-			n := strings.SplitN(f.Tag.Get("json"), ",", 2)[0]
+			n, _, _ := strings.Cut(f.Tag.Get("json"), ",")
 			if n == "-" {
 				return ""
 			}
@@ -38,6 +39,10 @@ func Init() {
 
 // Translate mengubah error binding menjadi apperror dengan pesan Indonesia.
 func Translate(err error) *apperror.Error {
+	var tooBig *http.MaxBytesError
+	if errors.As(err, &tooBig) {
+		return apperror.ErrTooLarge
+	}
 	var ve validator.ValidationErrors
 	if errors.As(err, &ve) {
 		d := make(map[string]string, len(ve))

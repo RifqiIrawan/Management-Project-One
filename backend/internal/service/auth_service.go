@@ -85,6 +85,9 @@ func (s *AuthService) Login(ctx context.Context, req dto.LoginRequest, meta Clie
 	}
 	if err := s.users.TouchLogin(ctx, u.ID); err != nil {
 		slog.Warn("gagal mencatat last_login_at", "err", err)
+	} else {
+		now := time.Now()
+		u.LastLoginAt = &now
 	}
 	return s.issueSession(ctx, u, meta)
 }

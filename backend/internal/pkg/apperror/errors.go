@@ -22,6 +22,9 @@ var (
 	ErrUnauthorized = New(http.StatusUnauthorized, "UNAUTHORIZED", "Silakan login terlebih dahulu")
 	ErrTokenExpired = New(http.StatusUnauthorized, "TOKEN_EXPIRED", "Token kedaluwarsa")
 	ErrTooMany      = New(http.StatusTooManyRequests, "TOO_MANY_REQUESTS", "Terlalu banyak percobaan, coba lagi nanti")
+	ErrNoRoute      = New(http.StatusNotFound, "NOT_FOUND", "Endpoint tidak ditemukan")
+	ErrNoMethod     = New(http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Method tidak diizinkan untuk endpoint ini")
+	ErrTooLarge     = New(http.StatusRequestEntityTooLarge, "PAYLOAD_TOO_LARGE", "Ukuran data terlalu besar (maks. 1 MB)")
 	ErrInternal     = New(http.StatusInternalServerError, "INTERNAL_ERROR", "Terjadi kesalahan pada server")
 )
 
