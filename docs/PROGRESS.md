@@ -20,7 +20,7 @@ Legenda: ✅ selesai · 🚧 sedang dikerjakan · ⏳ belum dimulai
 | 5 | Pencarian | List, filter, pencarian, sort, pagination, Tugas Saya | ✅ | [05-search-filter](features/05-search-filter.md) |
 | 6 | Kolaborasi | Komentar & riwayat aktivitas (pembacaan), `comment_count` | ✅ | [06-comments-activity](features/06-comments-activity.md) |
 | 7 | Dashboard | Statistik, tugas jatuh tempo, proyek terbaru, aktivitas terbaru (`GET /dashboard`) | ✅ | [07-dashboard](features/07-dashboard.md) |
-| 8 | Rilis | Swagger, testing, Docker produksi | ⏳ | — |
+| 8 | Rilis | OpenAPI + Swagger UI, rate limit umum, hardening operasional, backup & restore, panduan deploy VPS (tanpa Docker), runner tes | ✅ | [08-release](features/08-release.md) |
 
 ## Frontend
 

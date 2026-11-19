@@ -43,7 +43,7 @@ Format response & kode error mengikuti Bagian 8.1 spesifikasi (`VALIDATION_ERROR
 - **Rotasi + deteksi pencurian**: tiap refresh mencabut token lama. Jika token yang sudah dicabut dipakai lagi, **semua** sesi user dicabut. Pencabutan memakai `UPDATE ... WHERE revoked_at IS NULL` sehingga aman untuk request bersamaan.
 - **`token_version`**: `Auth` middleware membandingkan claim `ver` dengan database. Ganti password & logout-all menaikkan versi sehingga access token lama langsung mati (tanpa menunggu 15 menit).
 - Ganti password: cabut semua sesi lalu otomatis buat sesi baru untuk perangkat yang sedang dipakai.
-- Header keamanan (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`) dan batas body 1 MB. `ClientIP` memakai alamat koneksi asli (proxy tidak dipercaya) agar rate limit tidak bisa di-spoof lewat `X-Forwarded-For`.
+- Header keamanan (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`) dan batas body 1 MB. `ClientIP` memakai alamat koneksi asli dan mengabaikan `X-Forwarded-For` kecuali pengirimnya terdaftar di `TRUSTED_PROXIES` ([fitur 08](08-release.md)), agar rate limit tidak bisa di-spoof.
 
 ## Konfigurasi baru (`backend/.env`)
 `JWT_SECRET` (**wajib**, ≥ 32 karakter), `JWT_ISSUER`, `JWT_ACCESS_TTL`, `JWT_REFRESH_TTL`, `COOKIE_SECURE`, `BCRYPT_COST`.
@@ -66,7 +66,7 @@ curl localhost:6990/api/v1/me -H "Authorization: Bearer <access_token>"
 - Pelajaran: cek 401 pada refresh harus memverifikasi pesan error ("Sesi tidak valid"), bukan hanya status, agar tidak lolos karena alasan yang salah.
 
 ## Catatan & keputusan
-- Rate limit di memori (per proses); cukup untuk satu instance. Perlu Redis bila di-scale horizontal. Di balik reverse proxy (produksi) `ClientIP` akan berisi IP proxy: set trusted proxies yang benar sebelum deploy, kalau tidak semua user berbagi satu kuota.
+- Rate limit di memori (per proses); cukup untuk satu instance. Perlu Redis bila di-scale horizontal. Di balik reverse proxy (produksi) isi `TRUSTED_PROXIES` (mis. `127.0.0.1`) dan pastikan proxy menimpa `X-Forwarded-For` (lihat [DEPLOY.md](../DEPLOY.md)); tanpa itu semua user terlihat berasal dari IP proxy dan berbagi satu kuota.
 - Baris `refresh_tokens` yang kedaluwarsa/dicabut belum dibersihkan otomatis (job pembersihan dijadwalkan di fase rilis).
 - `go test -race` belum bisa dijalankan di mesin ini (tidak ada compiler C / cgo).
 - Rate limit 5/menit dipasang terpisah untuk `/register` dan `/login`.

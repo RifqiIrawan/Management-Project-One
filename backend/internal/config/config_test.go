@@ -1,6 +1,7 @@
 package config
 
 import (
+	"os"
 	"strings"
 	"testing"
 )
@@ -72,5 +73,94 @@ func TestMigrateURLEscapesPassword(t *testing.T) {
 	u := c.MigrateURL()
 	if strings.Contains(u, "p@ss:w/rd#1") || !strings.HasPrefix(u, "pgx5://mpo:") {
 		t.Fatalf("password tidak di-escape: %s", u)
+	}
+}
+
+func TestOpsDefaults(t *testing.T) {
+	baseEnv(t)
+	c, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.APIRateLimit != 100 || len(c.TrustedProxies) != 0 || !c.SwaggerEnabled || c.CleanupInterval.Hours() != 1 {
+		t.Fatalf("default operasional salah: %+v", c)
+	}
+}
+
+func TestSwaggerDefaultOffInProduction(t *testing.T) {
+	baseEnv(t)
+	t.Setenv("APP_ENV", "production")
+	t.Setenv("COOKIE_SECURE", "true")
+	c, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.SwaggerEnabled {
+		t.Fatal("Swagger harus nonaktif secara default di production")
+	}
+	t.Setenv("SWAGGER_ENABLED", "true")
+	if c, _ := Load(); !c.SwaggerEnabled {
+		t.Fatal("Swagger harus bisa diaktifkan eksplisit")
+	}
+}
+
+func TestOpsOverridesAndValidation(t *testing.T) {
+	baseEnv(t)
+	t.Setenv("API_RATE_LIMIT_PER_MIN", "0")
+	t.Setenv("TOKEN_CLEANUP_INTERVAL", "0")
+	t.Setenv("TRUSTED_PROXIES", " 127.0.0.1 , 10.0.0.0/8 ,, ::1")
+	c, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.APIRateLimit != 0 || c.CleanupInterval != 0 || len(c.TrustedProxies) != 3 || c.TrustedProxies[1] != "10.0.0.0/8" {
+		t.Fatalf("override salah: %+v", c)
+	}
+	bad := map[string]string{
+		"API_RATE_LIMIT_PER_MIN": "-1", "TRUSTED_PROXIES": "bukan-ip", "TOKEN_CLEANUP_INTERVAL": "-5m", "SWAGGER_ENABLED": "mungkin",
+	}
+	for k, v := range bad {
+		t.Run(k, func(t *testing.T) {
+			baseEnv(t)
+			t.Setenv(k, v)
+			if _, err := Load(); err == nil {
+				t.Fatalf("%s=%q harus ditolak", k, v)
+			}
+		})
+	}
+}
+
+func TestListenHost(t *testing.T) {
+	cases := []struct {
+		name, env, host, want string
+		setHost               bool
+	}{
+		{"development: semua antarmuka", "development", "", ":6990", false},
+		{"production: default localhost", "production", "", "127.0.0.1:6990", false},
+		{"production: override eksplisit", "production", "0.0.0.0", "0.0.0.0:6990", true},
+		{"development: bind localhost", "development", "127.0.0.1", "127.0.0.1:6990", true},
+		{"HOST kosong eksplisit = semua antarmuka", "production", "", ":6990", true},
+		{"IPv6", "development", "::1", "[::1]:6990", true},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			baseEnv(t)
+			t.Setenv("APP_ENV", c.env)
+			if c.env == "production" {
+				t.Setenv("COOKIE_SECURE", "true")
+			}
+			if c.setHost {
+				t.Setenv("HOST", c.host)
+			} else {
+				os.Unsetenv("HOST")
+			}
+			cfg, err := Load()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := cfg.ListenAddr(); got != c.want {
+				t.Fatalf("ListenAddr = %q, harapan %q", got, c.want)
+			}
+		})
 	}
 }

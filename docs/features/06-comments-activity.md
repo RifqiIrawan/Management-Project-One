@@ -93,7 +93,7 @@ Data sintetis dalam transaksi yang di-rollback (tidak ada data sisa):
 Dugaan awal bahwa riwayat butuh indeks `(project_id, created_at, id)` **tidak terbukti** pada data dengan timestamp realistis, jadi tidak ada migrasi indeks tambahan. (Pemindaian penuh hanya terjadi bila ribuan catatan punya `created_at` identik, mis. data uji satu transaksi.)
 
 ## Batasan & utang
-- **Rate limit umum "100 req/menit/user"** dari bagian Keamanan spesifikasi belum diimplementasikan (baru login/register 5/menit dan pencarian user 30/menit). Dijadwalkan di fase rilis (fitur 08).
+- ~~Rate limit umum "100 req/menit/user"~~ → selesai di [fitur 08](08-release.md) (`API_RATE_LIMIT_PER_MIN`, default 100). Skrip e2e memanggil API lebih sering dari itu, jadi dijalankan pada server dengan `API_RATE_LIMIT_PER_MIN=0`.
 - Isi komentar disimpan apa adanya; **sanitasi Markdown dilakukan frontend saat render** (sesuai spesifikasi). Backend tidak merender HTML.
 - Riwayat belum mencatat perubahan keanggotaan (undang/keluarkan/ubah role) dan pengarsipan proyek.
 - Mention `@nama` di komentar dijadwalkan v1.2.

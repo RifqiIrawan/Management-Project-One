@@ -37,7 +37,7 @@ func OKMeta(c *gin.Context, status int, data, meta any) {
 func Err(c *gin.Context, err error) {
 	ae := toAppError(err)
 	if ae == nil {
-		slog.Error("unhandled error", "path", c.FullPath(), "err", err)
+		slog.Error("unhandled error", "request_id", c.GetString("request_id"), "route", c.FullPath(), "err", err)
 		ae = apperror.ErrInternal
 	}
 	c.AbortWithStatusJSON(ae.Status, Body{

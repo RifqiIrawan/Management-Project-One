@@ -6,8 +6,11 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"gorm.io/gorm"
 
+	"github.com/RifqiIrawan/Management-Project-One/backend/docs"
 	"github.com/RifqiIrawan/Management-Project-One/backend/internal/config"
 	"github.com/RifqiIrawan/Management-Project-One/backend/internal/handler"
 	"github.com/RifqiIrawan/Management-Project-One/backend/internal/middleware"
@@ -54,17 +57,25 @@ func New(cfg *config.Config, db *gorm.DB) (*gin.Engine, error) {
 	memberH := handler.NewMemberHandler(memberSvc)
 
 	r := gin.New()
-	_ = r.SetTrustedProxies(nil) // ClientIP = alamat koneksi asli (anti spoof X-Forwarded-For)
+	// Tanpa TRUSTED_PROXIES: ClientIP = alamat koneksi asli (X-Forwarded-For diabaikan, anti spoof).
+	// Di balik reverse proxy, isi TRUSTED_PROXIES dengan IP/CIDR proxy agar IP klien yang benar dipakai.
+	if err := r.SetTrustedProxies(cfg.TrustedProxies); err != nil {
+		return nil, fmt.Errorf("trusted proxies: %w", err)
+	}
 	r.HandleMethodNotAllowed = true
 	r.NoRoute(func(c *gin.Context) { response.Err(c, apperror.ErrNoRoute) })
 	r.NoMethod(func(c *gin.Context) { response.Err(c, apperror.ErrNoMethod) })
-	r.Use(gin.Logger(), middleware.Recovery(), middleware.Security())
+	r.Use(middleware.AccessLog(), middleware.Recovery(), middleware.Security(cfg.AppEnv == "production"))
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     cfg.AllowedOrigins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Authorization", "Content-Type"},
 		AllowCredentials: true,
 	}))
+
+	if cfg.SwaggerEnabled {
+		mountDocs(r)
+	}
 
 	v1 := r.Group("/api/v1")
 	v1.GET("/health", func(c *gin.Context) {
@@ -83,6 +94,9 @@ func New(cfg *config.Config, db *gorm.DB) (*gin.Engine, error) {
 	auth.POST("/logout", authH.Logout)
 
 	private := v1.Group("", middleware.Auth(authSvc))
+	if cfg.APIRateLimit > 0 {
+		private.Use(middleware.NewKeyLimiter(cfg.APIRateLimit).UserMiddleware()) // batas umum per user
+	}
 	private.POST("/auth/logout-all", authH.LogoutAll)
 	private.GET("/me", userH.Me)
 	private.PATCH("/me", userH.UpdateMe)
@@ -121,4 +135,22 @@ func New(cfg *config.Config, db *gorm.DB) (*gin.Engine, error) {
 	comments.DELETE("/:commentId", commentH.Delete)
 
 	return r, nil
+}
+
+// mountDocs menyajikan spesifikasi OpenAPI dan Swagger UI (di luar /api/v1 agar tidak ikut tercatat
+// sebagai endpoint API). Dinonaktifkan secara default di production (SWAGGER_ENABLED).
+func mountDocs(r *gin.Engine) {
+	r.GET("/api/openapi.yaml", func(c *gin.Context) {
+		c.Data(http.StatusOK, "application/yaml; charset=utf-8", docs.OpenAPI)
+	})
+	toUI := func(c *gin.Context) { c.Redirect(http.StatusFound, "/api/docs/index.html") }
+	ui := ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.URL("/api/openapi.yaml"))
+	r.GET("/api/docs", toUI)
+	r.GET("/api/docs/*any", func(c *gin.Context) {
+		if p := c.Param("any"); p == "" || p == "/" { // "/api/docs/" tertangkap wildcard ini
+			toUI(c)
+			return
+		}
+		ui(c)
+	})
 }

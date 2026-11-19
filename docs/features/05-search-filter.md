@@ -112,6 +112,6 @@ curl "localhost:6990/api/v1/me/tasks?group=due" -H "Authorization: Bearer <token
 - Regresi: `e2e_tasks`, `e2e_projects`, `e2e_auth`, `e2e_race_owner` tetap lulus.
 
 ## Batasan
-- Rate limit khusus pencarian belum ada (hanya batas body & panjang `q`); pencarian dilindungi autentikasi dan keanggotaan.
+- Tidak ada batas laju khusus pencarian; yang berlaku adalah batas umum 100 req/menit/user dari [fitur 08](08-release.md), ditambah batas body dan panjang `q`. Pencarian dilindungi autentikasi dan keanggotaan.
 - `group=due` mengembalikan semua tugas terbuka milik user tanpa pagination (wajar untuk tugas pribadi).
 - Pencarian belum mencakup deskripsi tugas dan belum memakai peringkat relevansi (hanya `ILIKE`).

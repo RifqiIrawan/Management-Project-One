@@ -28,3 +28,7 @@ Thumbs.db
 .idea/
 .vscode/
 *.log
+
+# Backup database (berisi data nyata, jangan di-commit)
+backups/
+*.dump

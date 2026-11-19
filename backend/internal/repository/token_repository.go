@@ -58,3 +58,14 @@ func (r *TokenRepository) RevokeAllForUser(ctx context.Context, userID string) e
 	}
 	return nil
 }
+
+// DeleteExpired menghapus refresh token yang kedaluwarsa sebelum cutoff (baik aktif maupun sudah dicabut).
+// Token yang sudah dicabut tetap disimpan sampai kedaluwarsa agar pemakaian ulangnya (indikasi pencurian)
+// masih terdeteksi selama token itu seharusnya masih berlaku.
+func (r *TokenRepository) DeleteExpired(ctx context.Context, cutoff time.Time) (int64, error) {
+	res := r.db.WithContext(ctx).Exec(`DELETE FROM refresh_tokens WHERE expires_at < ?`, cutoff)
+	if res.Error != nil {
+		return 0, fmt.Errorf("delete expired tokens: %w", res.Error)
+	}
+	return res.RowsAffected, nil
+}

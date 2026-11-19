@@ -12,7 +12,7 @@ import (
 // Recovery menangkap panic dan membalas dengan JSON 500 standar (tanpa detail internal).
 func Recovery() gin.HandlerFunc {
 	return gin.CustomRecovery(func(c *gin.Context, recovered any) {
-		slog.Error("panic", "path", c.FullPath(), "err", recovered)
+		slog.Error("panic", "request_id", RequestID(c), "route", c.FullPath(), "err", recovered)
 		response.Err(c, apperror.ErrInternal)
 	})
 }

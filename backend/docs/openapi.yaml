@@ -1,0 +1,1371 @@
+openapi: 3.0.3
+info:
+  title: Management-Project-One API
+  version: 1.0.0
+  description: |
+    REST API aplikasi manajemen proyek & tugas tim.
+
+    **Autentikasi.** Login menghasilkan `access_token` (JWT, 15 menit) di body dan cookie `refresh_token`
+    (HttpOnly, 7 hari). Kirim `Authorization: Bearer <access_token>` ke endpoint bertanda gembok.
+    Saat access token habis (401 `TOKEN_EXPIRED`), panggil `POST /auth/refresh` (cookie terkirim otomatis).
+
+    **Format respons.** Semua respons berbentuk `{ "success": true, "data": ..., "meta": ... }` atau
+    `{ "success": false, "error": { "code", "message", "details" } }`.
+
+    **Hak akses.** Non-anggota proyek selalu mendapat **404** (bukan 403) agar keberadaan proyek/tugas tidak bocor.
+    Anggota biasa yang melakukan aksi khusus owner mendapat **403**.
+
+    **Batas laju.** Login & register 5/menit/IP, pencarian user 30/menit/IP, API terautentikasi 100/menit/user
+    (default). Terlampaui → **429** dengan header `Retry-After` (detik).
+
+    **Zona waktu.** Waktu disimpan UTC. "Hari ini" / "minggu ini" pada filter deadline mengikuti `APP_TIMEZONE`
+    server (default `Asia/Jakarta`).
+servers:
+  - url: /api/v1
+    description: Server yang sedang menyajikan dokumen ini
+tags:
+  - name: Sistem
+  - name: Auth
+  - name: Profil
+  - name: Dashboard
+  - name: Proyek
+  - name: Anggota
+  - name: Tugas
+  - name: Komentar
+  - name: Aktivitas
+
+paths:
+  /health:
+    get:
+      tags: [Sistem]
+      summary: Cek kesehatan API dan koneksi database
+      operationId: health
+      responses:
+        '200':
+          description: API dan database sehat
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HealthEnvelope' }
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  # ---------------------------------------------------------------- Auth
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Daftar akun
+      description: Email unik (otomatis huruf kecil). Password min. 8 karakter, wajib huruf dan angka, maks. 72 byte. Dibatasi 5/menit/IP.
+      operationId: register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RegisterRequest' }
+      responses:
+        '201':
+          description: Akun dibuat
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '413': { $ref: '#/components/responses/TooLarge' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login
+      description: Pesan error sama untuk email tak terdaftar dan password salah. Dibatasi 5/menit/IP.
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200':
+          description: Berhasil. Refresh token dikirim sebagai cookie HttpOnly
+          headers:
+            Set-Cookie:
+              description: "`refresh_token=...; Path=/api/v1/auth; HttpOnly; SameSite=Strict`"
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Perbarui access token (rotasi refresh token)
+      description: |
+        Memakai cookie `refresh_token`. Token lama dicabut dan diganti baru. Memakai ulang token yang sudah
+        dicabut dianggap pencurian dan **mencabut semua sesi** user.
+      operationId: refresh
+      security: [{ cookieAuth: [] }]
+      responses:
+        '200':
+          description: Token baru
+          headers:
+            Set-Cookie:
+              description: Refresh token baru
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout perangkat ini (cabut refresh token)
+      operationId: logout
+      security: [{ cookieAuth: [] }]
+      responses:
+        '200':
+          description: Selalu berhasil, cookie dihapus
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EmptyEnvelope' }
+  /auth/logout-all:
+    post:
+      tags: [Auth]
+      summary: Logout semua perangkat
+      description: Mencabut semua refresh token dan membuat semua access token user langsung tidak berlaku.
+      operationId: logoutAll
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Semua sesi dicabut
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EmptyEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  # ---------------------------------------------------------------- Profil
+  /me:
+    get:
+      tags: [Profil]
+      summary: Profil saya
+      operationId: getMe
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Profil
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    patch:
+      tags: [Profil]
+      summary: Ubah nama / warna avatar
+      operationId: updateMe
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateProfileRequest' }
+      responses:
+        '200':
+          description: Profil terbaru
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+  /me/password:
+    patch:
+      tags: [Profil]
+      summary: Ganti password
+      description: Semua sesi lain dicabut; perangkat ini otomatis mendapat sesi baru (token baru + cookie).
+      operationId: changePassword
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ChangePasswordRequest' }
+      responses:
+        '200':
+          description: Sesi baru
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+  /me/tasks:
+    get:
+      tags: [Tugas]
+      summary: Tugas saya lintas proyek
+      description: |
+        Tugas yang di-assign ke saya, dari proyek tidak terarsip tempat saya anggota. Tugas `done` dikecualikan
+        kecuali `include_done=true` atau `status` diisi. Parameter `assignee` diabaikan.
+        Dengan `group=due` hasilnya dikelompokkan menurut deadline (tanpa pagination).
+      operationId: myTasks
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/TaskQ' }
+        - { $ref: '#/components/parameters/TaskStatus' }
+        - { $ref: '#/components/parameters/TaskPriority' }
+        - { $ref: '#/components/parameters/TaskDue' }
+        - { $ref: '#/components/parameters/TaskSort' }
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/PerPage' }
+        - { $ref: '#/components/parameters/IncludeDone' }
+        - name: group
+          in: query
+          description: "`due` = kelompokkan menurut deadline"
+          schema: { type: string, enum: [due] }
+      responses:
+        '200':
+          description: Daftar berpaginasi, atau objek terkelompok bila `group=due`
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - { $ref: '#/components/schemas/TaskListEnvelope' }
+                  - { $ref: '#/components/schemas/MyTasksGroupedEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /dashboard:
+    get:
+      tags: [Dashboard]
+      summary: Ringkasan dashboard (satu endpoint)
+      description: |
+        Statistik tugas saya, 5 tugas jatuh tempo terdekat, 6 proyek terbaru (dengan progress), dan 10 aktivitas
+        terbaru dari proyek yang saya ikuti. Semua daftar selalu berupa array (bukan null).
+      operationId: dashboard
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Data dashboard
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DashboardEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /users/search:
+    get:
+      tags: [Anggota]
+      summary: Cari user untuk diundang
+      description: Pencarian awalan email, min. 3 karakter, maks. 5 hasil, tidak termasuk diri sendiri. Dibatasi 30/menit/IP.
+      operationId: searchUsers
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: email
+          in: query
+          required: true
+          schema: { type: string, minLength: 3 }
+      responses:
+        '200':
+          description: Hasil pencarian
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserSummaryListEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  # ---------------------------------------------------------------- Proyek
+  /projects:
+    get:
+      tags: [Proyek]
+      summary: Daftar proyek saya
+      description: Favorit di atas, lalu terbaru. Memuat jumlah anggota/tugas, progress, dan avatar anggota.
+      operationId: listProjects
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: q
+          in: query
+          description: Cari nama proyek (tanpa beda huruf besar/kecil)
+          schema: { type: string }
+        - name: archived
+          in: query
+          description: "`true` = tampilkan proyek terarsip"
+          schema: { type: boolean, default: false }
+      responses:
+        '200':
+          description: Daftar proyek
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProjectListEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    post:
+      tags: [Proyek]
+      summary: Buat proyek
+      description: Pembuat otomatis menjadi owner. `key` (2-5 huruf, otomatis huruf besar) unik dan tidak bisa diubah.
+      operationId: createProject
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateProjectRequest' }
+      responses:
+        '201':
+          description: Proyek dibuat
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProjectEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+  /projects/{projectId}:
+    parameters:
+      - { $ref: '#/components/parameters/ProjectId' }
+    get:
+      tags: [Proyek]
+      summary: Detail proyek
+      operationId: getProject
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Detail proyek beserta role dan favorit saya
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProjectEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    patch:
+      tags: [Proyek]
+      summary: Edit proyek (owner)
+      description: Field yang tidak dikirim tidak diubah; `description` dan `icon` boleh dikosongkan dengan string kosong.
+      operationId: updateProject
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateProjectRequest' }
+      responses:
+        '200':
+          description: Proyek terbaru
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProjectEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    delete:
+      tags: [Proyek]
+      summary: Hapus proyek permanen (owner)
+      description: Wajib mengetik nama proyek persis di `confirm_name`. Tugas, komentar, dan riwayatnya ikut terhapus.
+      operationId: deleteProject
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DeleteProjectRequest' }
+      responses:
+        '200':
+          description: Terhapus
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EmptyEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+  /projects/{projectId}/archive:
+    parameters:
+      - { $ref: '#/components/parameters/ProjectId' }
+    post:
+      tags: [Proyek]
+      summary: Arsipkan / pulihkan proyek (owner)
+      description: Proyek terarsip disembunyikan dari daftar default dan tugas/komentarnya menjadi read-only.
+      operationId: archiveProject
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ArchiveProjectRequest' }
+      responses:
+        '200':
+          description: Proyek terbaru
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProjectEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+  /projects/{projectId}/favorite:
+    parameters:
+      - { $ref: '#/components/parameters/ProjectId' }
+    post:
+      tags: [Proyek]
+      summary: Toggle favorit (per user)
+      operationId: toggleFavorite
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Status favorit terbaru
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FavoriteEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  # ---------------------------------------------------------------- Anggota
+  /projects/{projectId}/members:
+    parameters:
+      - { $ref: '#/components/parameters/ProjectId' }
+    get:
+      tags: [Anggota]
+      summary: Daftar anggota proyek (owner dulu)
+      operationId: listMembers
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Anggota
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MemberListEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    post:
+      tags: [Anggota]
+      summary: Undang anggota berdasarkan email (owner)
+      description: User harus sudah terdaftar. Role default `member`.
+      operationId: addMember
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AddMemberRequest' }
+      responses:
+        '201':
+          description: Anggota ditambahkan
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MemberEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+  /projects/{projectId}/members/{userId}:
+    parameters:
+      - { $ref: '#/components/parameters/ProjectId' }
+      - { $ref: '#/components/parameters/UserId' }
+    patch:
+      tags: [Anggota]
+      summary: Ubah role anggota (owner)
+      description: Owner terakhir tidak bisa diturunkan (400).
+      operationId: updateMemberRole
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateMemberRoleRequest' }
+      responses:
+        '200':
+          description: Anggota terbaru
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MemberEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    delete:
+      tags: [Anggota]
+      summary: Keluarkan anggota (owner) atau keluar sendiri
+      description: Tugas yang di-assign ke anggota tersebut menjadi unassigned. Owner terakhir tidak bisa keluar (400).
+      operationId: removeMember
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Anggota dikeluarkan
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EmptyEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  # ---------------------------------------------------------------- Tugas
+  /projects/{projectId}/tasks:
+    parameters:
+      - { $ref: '#/components/parameters/ProjectId' }
+    get:
+      tags: [Tugas]
+      summary: Daftar tugas proyek (filter, cari, sort, pagination)
+      description: |
+        Filter berbeda digabung dengan AND; nilai di dalam satu filter (dipisah koma) dengan OR.
+        Default urutan `-created_at`. `view=board` mengembalikan semua tugas yang cocok per kolom Kanban
+        (urut posisi, tanpa pagination).
+      operationId: listTasks
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/TaskQ' }
+        - { $ref: '#/components/parameters/TaskStatus' }
+        - { $ref: '#/components/parameters/TaskPriority' }
+        - { $ref: '#/components/parameters/TaskAssignee' }
+        - { $ref: '#/components/parameters/TaskDue' }
+        - { $ref: '#/components/parameters/TaskSort' }
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/PerPage' }
+        - name: view
+          in: query
+          schema: { type: string, enum: [list, board] }
+      responses:
+        '200':
+          description: Daftar berpaginasi, atau objek per kolom bila `view=board`
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - { $ref: '#/components/schemas/TaskListEnvelope' }
+                  - { $ref: '#/components/schemas/BoardEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    post:
+      tags: [Tugas]
+      summary: Buat tugas
+      description: Nomor tugas (`MPO-12`) dibuat otomatis. Tugas baru masuk di paling atas kolomnya (default `todo`).
+      operationId: createTask
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateTaskRequest' }
+      responses:
+        '201':
+          description: Tugas dibuat
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TaskEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+  /tasks/{taskId}:
+    parameters:
+      - { $ref: '#/components/parameters/TaskId' }
+    get:
+      tags: [Tugas]
+      summary: Detail tugas
+      operationId: getTask
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Tugas
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TaskEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    patch:
+      tags: [Tugas]
+      summary: Edit sebagian field tugas
+      description: |
+        Field yang tidak dikirim tidak diubah. `null` mengosongkan `description`, `assignee_id`, `start_date`,
+        `due_date`. Mengubah `status` mengatur `completed_at` otomatis dan memindahkan kartu ke paling atas
+        kolom tujuan. Tanpa perubahan nyata = 200 tanpa menulis.
+      operationId: updateTask
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateTaskRequest' }
+      responses:
+        '200':
+          description: Tugas terbaru
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TaskEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    delete:
+      tags: [Tugas]
+      summary: Hapus tugas (pembuat atau owner)
+      operationId: deleteTask
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Terhapus
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EmptyEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+  /tasks/{taskId}/move:
+    parameters:
+      - { $ref: '#/components/parameters/TaskId' }
+    patch:
+      tags: [Tugas]
+      summary: Pindah kolom / urutan (drag & drop)
+      description: |
+        `position` desimal (mis. `1.5` di antara kartu 1.0 dan 2.0). Tanpa `position` kartu masuk
+        paling atas kolom tujuan.
+      operationId: moveTask
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MoveTaskRequest' }
+      responses:
+        '200':
+          description: Tugas terbaru
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TaskEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  # ---------------------------------------------------------------- Komentar
+  /tasks/{taskId}/comments:
+    parameters:
+      - { $ref: '#/components/parameters/TaskId' }
+    get:
+      tags: [Komentar]
+      summary: Daftar komentar (terlama dulu)
+      operationId: listComments
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - name: per_page
+          in: query
+          description: Default 50, maks. 100
+          schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+      responses:
+        '200':
+          description: Komentar berpaginasi
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CommentListEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    post:
+      tags: [Komentar]
+      summary: Tulis komentar
+      description: Isi di-trim, maks. 5000 karakter; baris baru dan Markdown dipertahankan. Dicatat di riwayat.
+      operationId: createComment
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CommentRequest' }
+      responses:
+        '201':
+          description: Komentar dibuat
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CommentEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+  /comments/{commentId}:
+    parameters:
+      - { $ref: '#/components/parameters/CommentId' }
+    patch:
+      tags: [Komentar]
+      summary: Edit komentar (hanya penulis)
+      description: Isi yang sama persis tidak menandai komentar sebagai diedit.
+      operationId: updateComment
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CommentRequest' }
+      responses:
+        '200':
+          description: Komentar terbaru
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CommentEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    delete:
+      tags: [Komentar]
+      summary: Hapus komentar (penulis atau owner proyek)
+      operationId: deleteComment
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Terhapus (catatan riwayatnya ikut dihapus)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EmptyEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  # ---------------------------------------------------------------- Aktivitas
+  /tasks/{taskId}/activities:
+    parameters:
+      - { $ref: '#/components/parameters/TaskId' }
+    get:
+      tags: [Aktivitas]
+      summary: Riwayat satu tugas (terbaru dulu)
+      operationId: taskActivities
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/PerPage' }
+      responses:
+        '200':
+          description: Riwayat berpaginasi
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ActivityListEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+  /projects/{projectId}/activities:
+    parameters:
+      - { $ref: '#/components/parameters/ProjectId' }
+    get:
+      tags: [Aktivitas]
+      summary: Riwayat seluruh proyek (terbaru dulu)
+      operationId: projectActivities
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/PerPage' }
+      responses:
+        '200':
+          description: Riwayat berpaginasi
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ActivityListEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Access token dari `/auth/login` atau `/auth/refresh`.
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: refresh_token
+      description: Cookie HttpOnly yang diset saat login.
+
+  parameters:
+    ProjectId: { name: projectId, in: path, required: true, schema: { type: string, format: uuid } }
+    TaskId: { name: taskId, in: path, required: true, schema: { type: string, format: uuid } }
+    CommentId: { name: commentId, in: path, required: true, schema: { type: string, format: uuid } }
+    UserId: { name: userId, in: path, required: true, schema: { type: string, format: uuid } }
+    Page:
+      name: page
+      in: query
+      description: Mulai dari 1
+      schema: { type: integer, minimum: 1, maximum: 1000000, default: 1 }
+    PerPage:
+      name: per_page
+      in: query
+      description: Default 20, maks. 100
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+    TaskQ:
+      name: q
+      in: query
+      description: Cari di judul (maks. 100 karakter). Bila memuat `-` (mis. `MPO-12`) juga mencocokkan kode tugas. `%` dan `_` dianggap literal.
+      schema: { type: string, maxLength: 100 }
+    TaskStatus:
+      name: status
+      in: query
+      description: "Multi nilai dipisah koma: `todo,in_progress,in_review,done`"
+      schema: { type: string, example: 'todo,in_progress' }
+    TaskPriority:
+      name: priority
+      in: query
+      description: "Multi nilai dipisah koma: `low,medium,high,urgent`"
+      schema: { type: string, example: 'high,urgent' }
+    TaskAssignee:
+      name: assignee
+      in: query
+      description: "Multi nilai dipisah koma: UUID, `me` (pemanggil), atau `none` (belum di-assign)"
+      schema: { type: string, example: 'me,none' }
+    TaskDue:
+      name: due
+      in: query
+      description: |
+        Multi nilai (OR): `overdue` (lewat & belum done), `today`, `week` (hari ini s/d Minggu), `none` (tanpa deadline).
+      schema: { type: string, example: 'overdue,today' }
+    TaskSort:
+      name: sort
+      in: query
+      description: |
+        Maks. 3 kolom dipisah koma, awalan `-` = menurun. Kolom: `created_at`, `updated_at`, `due_date`, `start_date`,
+        `title`, `priority` (low -> urgent), `status`, `code`. Tugas tanpa deadline selalu di akhir.
+      schema: { type: string, example: 'priority,-due_date' }
+    IncludeDone:
+      name: include_done
+      in: query
+      description: Sertakan tugas `done` (khusus `/me/tasks`)
+      schema: { type: boolean, default: false }
+
+  responses:
+    ValidationError:
+      description: Input tidak valid (`VALIDATION_ERROR`); `details` memuat pesan per field
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    Unauthorized:
+      description: Belum login / token tidak valid (`UNAUTHORIZED`) atau kedaluwarsa (`TOKEN_EXPIRED`)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    Forbidden:
+      description: Tidak punya izin (`FORBIDDEN`), mis. anggota biasa melakukan aksi owner
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    NotFound:
+      description: Data tidak ada, ID bukan UUID, atau pemanggil bukan anggota proyek (`NOT_FOUND`)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    Conflict:
+      description: Email / key proyek / anggota sudah ada (`CONFLICT`)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    TooLarge:
+      description: Body lebih dari 1 MB (`PAYLOAD_TOO_LARGE`)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    TooManyRequests:
+      description: Batas laju terlampaui (`TOO_MANY_REQUESTS`)
+      headers:
+        Retry-After:
+          description: Detik sebelum boleh mencoba lagi
+          schema: { type: integer, minimum: 1 }
+        X-RateLimit-Limit:
+          description: Batas request per menit
+          schema: { type: integer }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    Unavailable:
+      description: Database tidak terjangkau (`UNAVAILABLE`)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  schemas:
+    # ---- amplop ----
+    Envelope:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean }
+        data: {}
+        meta: { $ref: '#/components/schemas/PageMeta' }
+        error: { $ref: '#/components/schemas/Error' }
+    ErrorEnvelope:
+      type: object
+      required: [success, error]
+      properties:
+        success: { type: boolean, enum: [false] }
+        error: { $ref: '#/components/schemas/Error' }
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          example: VALIDATION_ERROR
+          description: VALIDATION_ERROR, UNAUTHORIZED, TOKEN_EXPIRED, FORBIDDEN, NOT_FOUND, METHOD_NOT_ALLOWED, CONFLICT, PAYLOAD_TOO_LARGE, TOO_MANY_REQUESTS, UNAVAILABLE, INTERNAL_ERROR
+        message: { type: string }
+        details:
+          type: object
+          additionalProperties: { type: string }
+          description: Pesan per field (hanya untuk VALIDATION_ERROR)
+    PageMeta:
+      type: object
+      required: [page, per_page, total, total_pages]
+      properties:
+        page: { type: integer }
+        per_page: { type: integer }
+        total: { type: integer }
+        total_pages: { type: integer }
+    EmptyEnvelope:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean, enum: [true] }
+    HealthEnvelope:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [status, env]
+          properties:
+            status: { type: string, example: ok }
+            env: { type: string, example: development }
+
+    # ---- amplop data ----
+    UserEnvelope:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: '#/components/schemas/User' }
+    AuthEnvelope:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: '#/components/schemas/Auth' }
+    UserSummaryListEnvelope:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/UserSummary' }
+    ProjectEnvelope:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: '#/components/schemas/Project' }
+    ProjectListEnvelope:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/Project' }
+    FavoriteEnvelope:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          required: [is_favorite]
+          properties:
+            is_favorite: { type: boolean }
+    MemberEnvelope:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: '#/components/schemas/Member' }
+    MemberListEnvelope:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/Member' }
+    TaskEnvelope:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: '#/components/schemas/Task' }
+    TaskListEnvelope:
+      type: object
+      required: [success, data, meta]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/Task' }
+        meta: { $ref: '#/components/schemas/PageMeta' }
+    BoardEnvelope:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: '#/components/schemas/Board' }
+    MyTasksGroupedEnvelope:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: '#/components/schemas/MyTasksGrouped' }
+    CommentEnvelope:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: '#/components/schemas/Comment' }
+    CommentListEnvelope:
+      type: object
+      required: [success, data, meta]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/Comment' }
+        meta: { $ref: '#/components/schemas/PageMeta' }
+    ActivityListEnvelope:
+      type: object
+      required: [success, data, meta]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/Activity' }
+        meta: { $ref: '#/components/schemas/PageMeta' }
+    DashboardEnvelope:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { $ref: '#/components/schemas/Dashboard' }
+
+    # ---- permintaan ----
+    RegisterRequest:
+      type: object
+      required: [name, email, password, confirm_password]
+      properties:
+        name: { type: string, minLength: 2, maxLength: 100 }
+        email: { type: string, format: email, maxLength: 150 }
+        password: { type: string, minLength: 8, maxLength: 72 }
+        confirm_password: { type: string }
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string }
+    UpdateProfileRequest:
+      type: object
+      properties:
+        name: { type: string, minLength: 2, maxLength: 100 }
+        avatar_color: { type: string, example: '#6366F1', description: Kode hex 3 atau 6 digit }
+    ChangePasswordRequest:
+      type: object
+      required: [current_password, new_password, confirm_password]
+      properties:
+        current_password: { type: string }
+        new_password: { type: string, minLength: 8, maxLength: 72 }
+        confirm_password: { type: string }
+    CreateProjectRequest:
+      type: object
+      required: [name, key]
+      properties:
+        name: { type: string, minLength: 2, maxLength: 150 }
+        key: { type: string, minLength: 2, maxLength: 5, pattern: '^[A-Za-z]+$', example: MPO }
+        description: { type: string, maxLength: 5000 }
+        color: { type: string, example: '#6366F1' }
+        icon: { type: string, maxLength: 10, description: Emoji }
+    UpdateProjectRequest:
+      type: object
+      properties:
+        name: { type: string, minLength: 2, maxLength: 150 }
+        description: { type: string, maxLength: 5000 }
+        color: { type: string }
+        icon: { type: string, maxLength: 10 }
+    ArchiveProjectRequest:
+      type: object
+      required: [archived]
+      properties:
+        archived: { type: boolean }
+    DeleteProjectRequest:
+      type: object
+      required: [confirm_name]
+      properties:
+        confirm_name: { type: string, description: Nama proyek persis }
+    AddMemberRequest:
+      type: object
+      required: [email]
+      properties:
+        email: { type: string, format: email }
+        role: { $ref: '#/components/schemas/Role' }
+    UpdateMemberRoleRequest:
+      type: object
+      required: [role]
+      properties:
+        role: { $ref: '#/components/schemas/Role' }
+    CreateTaskRequest:
+      type: object
+      required: [title]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200 }
+        description: { type: string, maxLength: 20000 }
+        status: { $ref: '#/components/schemas/TaskStatus' }
+        priority: { $ref: '#/components/schemas/TaskPriority' }
+        assignee_id: { type: string, format: uuid, description: Harus anggota proyek }
+        start_date: { type: string, format: date }
+        due_date: { type: string, format: date, description: Tidak boleh sebelum start_date }
+        labels:
+          type: array
+          maxItems: 5
+          items: { type: string, maxLength: 30 }
+    UpdateTaskRequest:
+      type: object
+      description: Semua field opsional. `null` mengosongkan description, assignee_id, start_date, due_date.
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200 }
+        description: { type: string, nullable: true, maxLength: 20000 }
+        status: { $ref: '#/components/schemas/TaskStatus' }
+        priority: { $ref: '#/components/schemas/TaskPriority' }
+        assignee_id: { type: string, format: uuid, nullable: true }
+        start_date: { type: string, format: date, nullable: true }
+        due_date: { type: string, format: date, nullable: true }
+        labels:
+          type: array
+          maxItems: 5
+          items: { type: string, maxLength: 30 }
+    MoveTaskRequest:
+      type: object
+      required: [status]
+      properties:
+        status: { $ref: '#/components/schemas/TaskStatus' }
+        position: { type: number, format: double, description: 'Posisi desimal; |nilai| <= 1e12' }
+    CommentRequest:
+      type: object
+      required: [body]
+      properties:
+        body: { type: string, minLength: 1, maxLength: 5000 }
+
+    # ---- model ----
+    Role: { type: string, enum: [owner, member] }
+    TaskStatus: { type: string, enum: [todo, in_progress, in_review, done] }
+    TaskPriority: { type: string, enum: [low, medium, high, urgent] }
+    User:
+      type: object
+      required: [id, name, email, avatar_color, last_login_at, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        email: { type: string, format: email }
+        avatar_color: { type: string, example: '#6366F1' }
+        last_login_at: { type: string, format: date-time, nullable: true }
+        created_at: { type: string, format: date-time }
+    Auth:
+      type: object
+      required: [access_token, token_type, expires_in, user]
+      properties:
+        access_token: { type: string }
+        token_type: { type: string, enum: [Bearer] }
+        expires_in: { type: integer, description: Detik }
+        user: { $ref: '#/components/schemas/User' }
+    UserRef:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        avatar_color: { type: string }
+    UserSummary:
+      type: object
+      required: [id, name, email, avatar_color]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        email: { type: string, format: email }
+        avatar_color: { type: string }
+    ProjectRef:
+      type: object
+      required: [id, name, key, color]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        key: { type: string }
+        color: { type: string }
+    MemberPreview:
+      type: object
+      required: [id, name, avatar_color]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        avatar_color: { type: string }
+    Project:
+      type: object
+      required: [id, name, key, description, color, icon, owner_id, archived_at, created_at, my_role, is_favorite, member_count, task_count, done_count, progress]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        key: { type: string, example: MPO }
+        description: { type: string, nullable: true }
+        color: { type: string }
+        icon: { type: string, nullable: true }
+        owner_id: { type: string, format: uuid }
+        archived_at: { type: string, format: date-time, nullable: true }
+        created_at: { type: string, format: date-time }
+        my_role: { $ref: '#/components/schemas/Role' }
+        is_favorite: { type: boolean }
+        member_count: { type: integer }
+        task_count: { type: integer }
+        done_count: { type: integer }
+        progress: { type: integer, minimum: 0, maximum: 100, description: Persen tugas done dari total }
+        members_preview:
+          type: array
+          description: Maks. 4 anggota (hanya pada daftar proyek / dashboard)
+          items: { $ref: '#/components/schemas/MemberPreview' }
+    Member:
+      type: object
+      required: [user_id, name, email, avatar_color, role, joined_at]
+      properties:
+        user_id: { type: string, format: uuid }
+        name: { type: string }
+        email: { type: string, format: email }
+        avatar_color: { type: string }
+        role: { $ref: '#/components/schemas/Role' }
+        joined_at: { type: string, format: date-time }
+    Task:
+      type: object
+      required: [id, code, number, project_id, title, description, status, priority, labels, position, assignee, created_by, start_date, due_date, comment_count, completed_at, created_at, updated_at]
+      properties:
+        id: { type: string, format: uuid }
+        code: { type: string, example: MPO-12 }
+        number: { type: integer }
+        project_id: { type: string, format: uuid }
+        project: { $ref: '#/components/schemas/ProjectRef' }
+        title: { type: string }
+        description: { type: string, nullable: true }
+        status: { $ref: '#/components/schemas/TaskStatus' }
+        priority: { $ref: '#/components/schemas/TaskPriority' }
+        labels:
+          type: array
+          items: { type: string }
+        position: { type: number, format: double }
+        assignee:
+          nullable: true
+          allOf:
+            - { $ref: '#/components/schemas/UserRef' }
+        created_by: { $ref: '#/components/schemas/UserRef' }
+        start_date: { type: string, format: date, nullable: true }
+        due_date: { type: string, format: date, nullable: true }
+        comment_count: { type: integer }
+        completed_at: { type: string, format: date-time, nullable: true }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    DashboardTask:
+      allOf:
+        - { $ref: '#/components/schemas/Task' }
+        - type: object
+          required: [is_overdue]
+          properties:
+            is_overdue: { type: boolean }
+    Board:
+      type: object
+      required: [todo, in_progress, in_review, done]
+      properties:
+        todo: { type: array, items: { $ref: '#/components/schemas/Task' } }
+        in_progress: { type: array, items: { $ref: '#/components/schemas/Task' } }
+        in_review: { type: array, items: { $ref: '#/components/schemas/Task' } }
+        done: { type: array, items: { $ref: '#/components/schemas/Task' } }
+    MyTasksGrouped:
+      type: object
+      required: [overdue, today, this_week, later, no_deadline]
+      properties:
+        overdue: { type: array, items: { $ref: '#/components/schemas/Task' } }
+        today: { type: array, items: { $ref: '#/components/schemas/Task' } }
+        this_week: { type: array, items: { $ref: '#/components/schemas/Task' } }
+        later: { type: array, items: { $ref: '#/components/schemas/Task' } }
+        no_deadline: { type: array, items: { $ref: '#/components/schemas/Task' } }
+    Comment:
+      type: object
+      required: [id, task_id, body, author, edited_at, created_at, can_edit, can_delete]
+      properties:
+        id: { type: string, format: uuid }
+        task_id: { type: string, format: uuid }
+        body: { type: string }
+        author: { $ref: '#/components/schemas/UserRef' }
+        edited_at: { type: string, format: date-time, nullable: true }
+        created_at: { type: string, format: date-time }
+        can_edit: { type: boolean, description: Hanya penulis }
+        can_delete: { type: boolean, description: Penulis atau owner proyek }
+    Activity:
+      type: object
+      required: [id, action, message, user, task_id, code, metadata, created_at]
+      properties:
+        id: { type: integer, format: int64 }
+        action:
+          type: string
+          description: task.created, task.updated, task.status_changed, task.assigned, task.deleted, comment.created
+        message: { type: string, example: Budi memindahkan MPO-12 dari To Do ke In Progress }
+        user: { $ref: '#/components/schemas/UserRef' }
+        project:
+          $ref: '#/components/schemas/ProjectRef'
+        task_id: { type: string, format: uuid, nullable: true, description: null bila tugasnya sudah dihapus }
+        code: { type: string }
+        metadata: { type: object, additionalProperties: true }
+        created_at: { type: string, format: date-time }
+    DashboardStats:
+      type: object
+      required: [total_tasks, open_tasks, completed_tasks, in_progress, due_this_week, overdue]
+      properties:
+        total_tasks: { type: integer }
+        open_tasks: { type: integer }
+        completed_tasks: { type: integer }
+        in_progress: { type: integer }
+        due_this_week: { type: integer }
+        overdue: { type: integer }
+    Dashboard:
+      type: object
+      required: [user, today, week_end, stats, upcoming_tasks, recent_projects, recent_activities]
+      properties:
+        user: { $ref: '#/components/schemas/UserRef' }
+        today: { type: string, format: date }
+        week_end: { type: string, format: date }
+        stats: { $ref: '#/components/schemas/DashboardStats' }
+        upcoming_tasks:
+          type: array
+          items: { $ref: '#/components/schemas/DashboardTask' }
+        recent_projects:
+          type: array
+          items: { $ref: '#/components/schemas/Project' }
+        recent_activities:
+          type: array
+          items: { $ref: '#/components/schemas/Activity' }
