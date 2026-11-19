@@ -1,6 +1,6 @@
 ﻿# 01 – Kerangka Backend
 
-**Status:** 🚧 (build & vet lolos; koneksi DB + health check belum diuji karena Docker Desktop belum berjalan)  
+**Status:** 🚧 (build & vet lolos; koneksi DB + health check belum diuji: role & database `mpo` belum dibuat di PostgreSQL lokal)  
 **Branch:** `main`
 
 ## Tujuan
@@ -16,7 +16,7 @@ Backend Go + Gin yang bisa berjalan, terhubung ke PostgreSQL, dan punya endpoint
 - `internal/database` – koneksi GORM + connection pool + ping
 - `internal/router` – Gin, CORS, logger/recovery, grup `/api/v1`
 - `internal/pkg/response` & `apperror` – format JSON seragam dan error standar
-- `docker-compose.yml` – PostgreSQL 16 (password dari `.env` root)
+- Database memakai **PostgreSQL lokal** (tanpa Docker untuk saat ini)
 - `backend/.env.example`
 
 ## Konvensi akses database
@@ -33,8 +33,9 @@ Backend Go + Gin yang bisa berjalan, terhubung ke PostgreSQL, dan punya endpoint
 ## Cara mencoba
 ```bash
 cp backend/.env.example backend/.env     # lalu isi DB_PASSWORD
-echo DB_PASSWORD=isi_sama > .env         # untuk docker compose (root)
-docker compose up -d
+# buat role & database di PostgreSQL lokal (sekali saja), sebagai superuser postgres:
+psql -U postgres -c "CREATE ROLE mpo LOGIN PASSWORD 'isi_sama_dengan_env';"
+psql -U postgres -c "CREATE DATABASE management_project_one OWNER mpo;"
 cd backend && go run ./cmd/api
 curl http://localhost:8080/api/v1/health
 ```
