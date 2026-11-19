@@ -1,6 +1,6 @@
-﻿# 01 – Kerangka Backend
+# 01 – Kerangka Backend
 
-**Status:** 🚧 (build & vet lolos; koneksi DB + health check belum diuji: role & database `mpo` belum dibuat di PostgreSQL lokal)  
+**Status:** ✅  `GET /api/v1/health` terverifikasi (200, database terhubung)  
 **Branch:** `main`
 
 ## Tujuan
@@ -43,3 +43,5 @@ curl http://localhost:8080/api/v1/health
 ## Catatan
 - `.env` tidak masuk git (lihat `.gitignore`); hanya `.env.example`.
 - Migrasi (`golang-migrate`) ditambahkan bersamaan fitur Auth (tabel `users`).
+
+**Tanggal selesai:** 2026-11-19

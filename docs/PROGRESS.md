@@ -13,7 +13,7 @@ Legenda: ✅ selesai · 🚧 sedang dikerjakan · ⏳ belum dimulai
 | # | Fase | Fitur | Status | Dokumen |
 |---|---|---|---|---|
 | 0 | Setup | Koneksi Git & GitHub, `.gitignore` | ✅ | [00-git-setup](features/00-git-setup.md) |
-| 1 | Setup | Kerangka backend (config, DB, router, health check, PostgreSQL lokal) | 🚧 | [01-backend-setup](features/01-backend-setup.md) |
+| 1 | Setup | Kerangka backend (config, DB, router, health check, PostgreSQL lokal) | ✅ | [01-backend-setup](features/01-backend-setup.md) |
 | 2 | Auth | Register, login, JWT access + refresh, middleware | ⏳ | — |
 | 3 | Proyek | CRUD proyek, anggota, hak akses (RBAC) | ⏳ | — |
 | 4 | Tugas | CRUD tugas, nomor `MPO-x`, status Kanban | ⏳ | — |
