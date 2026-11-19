@@ -61,12 +61,13 @@ powershell -File backend/tests/e2e_race_owner.ps1    # uji race condition (butuh
 - E2E `e2e_race_owner.ps1`: transaksi psql menahan kunci agar dua request saling-menurunkan benar-benar tumpang-tindih. Hasil dengan `FOR UPDATE`: selalu `200,400`, owner tersisa 1. **Uji mutasi**: dengan `FOR UPDATE` sengaja dicopot, 3 dari 3 ronde menghasilkan proyek tanpa owner (`200,200`), sehingga terbukti kunci inilah yang mencegah bug dan tes ini peka terhadapnya.
 
 ## Dilunasi di fitur 04
-- **Statistik tugas & progress %**: respons proyek kini memuat 	ask_count, done_count, progress.
+- **Statistik tugas & progress %**: respons proyek kini memuat `task_count`, `done_count`, `progress`.
 - **Tugas anggota yang dikeluarkan menjadi unassigned**: dikerjakan di transaksi yang sama dengan penghapusan anggota.
 - Proyek terarsip kini read-only untuk **tugas** (buat/edit/pindah/hapus ditolak). Pengaturan proyek & anggota pada proyek terarsip masih boleh diubah.
 
-## Belum dikerjakan
-- **Riwayat aktivitas proyek** (GET /projects/:id/activities) → fitur 06.
+## Dilunasi di fitur 06
+- **Riwayat aktivitas proyek** (`GET /projects/:projectId/activities`): lihat [fitur 06](06-comments-activity.md).
+
 ## Catatan
 - Port: backend `6990`, frontend `6969`.
 - Rate limit pencarian user di memori (per proses), sama seperti auth.

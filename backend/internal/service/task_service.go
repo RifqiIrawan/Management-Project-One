@@ -464,7 +464,7 @@ func toTaskResponse(r *repository.TaskRow) *dto.TaskResponse {
 		Project:     &dto.ProjectRef{ID: r.ProjectID, Name: r.ProjectName, Key: r.ProjectKey, Color: r.ProjectColor},
 		Description: r.Description, Status: r.Status, Priority: r.Priority, Labels: r.Labels, Position: r.Position,
 		CreatedBy: dto.UserRef{ID: r.CreatedBy, Name: r.CreatorName},
-		StartDate: r.StartDate, DueDate: r.DueDate, CompletedAt: r.CompletedAt,
+		StartDate: r.StartDate, DueDate: r.DueDate, CompletedAt: r.CompletedAt, CommentCount: r.CommentCount,
 		CreatedAt: r.CreatedAt, UpdatedAt: r.UpdatedAt,
 	}
 	if resp.Labels == nil {

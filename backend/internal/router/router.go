@@ -40,7 +40,12 @@ func New(cfg *config.Config, db *gorm.DB) (*gin.Engine, error) {
 	projectSvc := service.NewProjectService(projectRepo, memberRepo)
 	memberSvc := service.NewMemberService(projectRepo, memberRepo, userRepo)
 	taskSvc := service.NewTaskService(projectRepo, repository.NewTaskRepository(db), memberRepo, cfg.Timezone)
+	taskRepo := repository.NewTaskRepository(db)
+	commentSvc := service.NewCommentService(taskRepo, repository.NewCommentRepository(db))
+	activitySvc := service.NewActivityService(projectRepo, taskRepo, repository.NewActivityRepository(db))
 	taskH := handler.NewTaskHandler(taskSvc)
+	commentH := handler.NewCommentHandler(commentSvc)
+	activityH := handler.NewActivityHandler(activitySvc)
 	authH := handler.NewAuthHandler(authSvc, cfg)
 	userH := handler.NewUserHandler(userSvc)
 	projectH := handler.NewProjectHandler(projectSvc)
@@ -97,12 +102,20 @@ func New(cfg *config.Config, db *gorm.DB) (*gin.Engine, error) {
 	projects.DELETE("/:projectId/members/:userId", memberH.Remove)
 	projects.GET("/:projectId/tasks", taskH.List)
 	projects.POST("/:projectId/tasks", taskH.Create)
+	projects.GET("/:projectId/activities", activityH.ListProject)
 
 	tasks := private.Group("/tasks")
 	tasks.GET("/:taskId", taskH.Get)
 	tasks.PATCH("/:taskId", taskH.Update)
 	tasks.PATCH("/:taskId/move", taskH.Move)
 	tasks.DELETE("/:taskId", taskH.Delete)
+	tasks.GET("/:taskId/comments", commentH.List)
+	tasks.POST("/:taskId/comments", commentH.Create)
+	tasks.GET("/:taskId/activities", activityH.ListTask)
+
+	comments := private.Group("/comments")
+	comments.PATCH("/:commentId", commentH.Update)
+	comments.DELETE("/:commentId", commentH.Delete)
 
 	return r, nil
 }

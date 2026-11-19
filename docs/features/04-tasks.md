@@ -50,7 +50,7 @@ Tabel `activities` ditulis di transaksi yang sama dengan perubahannya:
 `task.created`, `task.updated {fields}`, `task.status_changed {from,to}`, `task.assigned {from,to}`, `task.deleted`. Semuanya memuat `code` tugas.
 - Memindahkan kartu hanya di dalam kolom yang sama (reorder) **tidak** dicatat (terlalu berisik).
 - Karena `activities.task_id` memakai `ON DELETE CASCADE` (sesuai spesifikasi), riwayat sebuah tugas ikut terhapus saat tugasnya dihapus. Yang tersisa hanya catatan `task.deleted` (disimpan dengan `task_id = NULL`).
-- **Endpoint pembacaan riwayat ada di fitur 06.**
+- Endpoint pembacaan riwayat: lihat [fitur 06](06-comments-activity.md).
 
 ## Konvensi query (GORM vs `Raw()`)
 - **GORM**: update & delete tugas.
@@ -76,5 +76,5 @@ curl -X PATCH localhost:6990/api/v1/tasks/<taskId>/move -H "Authorization: Beare
 
 ## Batasan & rencana
 - ~~Filter, pencarian, sort, pagination~~ → selesai di [fitur 05](05-search-filter.md).
-- `comment_count` pada kartu menunggu fitur 06 (komentar).
+- ~~`comment_count` pada kartu~~ → selesai di [fitur 06](06-comments-activity.md).
 - Posisi desimal bisa kehabisan presisi setelah ±50 penyisipan berturut-turut di antara dua kartu yang sama; belum ada rebalancing otomatis (aman untuk pemakaian wajar).

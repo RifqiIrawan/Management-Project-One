@@ -17,9 +17,9 @@ Backend Go + Gin yang bisa berjalan, terhubung ke PostgreSQL, dan punya endpoint
 - `internal/router` – Gin, CORS, logger/recovery, grup `/api/v1`
 - `internal/pkg/response` & `apperror` – format JSON seragam dan error standar
 - Database memakai **PostgreSQL lokal** (tanpa Docker untuk saat ini)
-- Server HTTP dengan timeout (ReadHeaderTimeout dll.) dan **graceful shutdown** (Ctrl+C / SIGTERM)
-- Respons JSON standar untuk 404, 405, dan panic (middleware/recovery.go)
-- .env terbaca baik saat dijalankan dari ackend/ maupun dari root repo
+- Server HTTP dengan timeout (`ReadHeaderTimeout` dll.) dan **graceful shutdown** (Ctrl+C / SIGTERM)
+- Respons JSON standar untuk 404, 405, dan panic (`middleware/recovery.go`)
+- `.env` terbaca baik saat dijalankan dari `backend/` maupun dari root repo
 - `backend/.env.example`
 
 ## Konvensi akses database
@@ -45,6 +45,8 @@ curl http://localhost:6990/api/v1/health
 
 ## Catatan
 - `.env` tidak masuk git (lihat `.gitignore`); hanya `.env.example`.
-- Migrasi (`golang-migrate`) dijalankan otomatis saat start; lihat fitur 02.`n- Server menolak start jika `DB_PASSWORD`/`JWT_SECRET` masih berisi nilai contoh `ganti_dengan_...`.`n- Port frontend (CORS): `http://localhost:6969`.
+- Migrasi (`golang-migrate`) dijalankan otomatis saat start; lihat fitur 02.
+- Server menolak start jika `DB_PASSWORD`/`JWT_SECRET` masih berisi nilai contoh `ganti_dengan_...`.
+- Port: backend `6990`, frontend (CORS) `http://localhost:6969`.
 
 **Tanggal selesai:** 2026-11-19

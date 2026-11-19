@@ -82,22 +82,23 @@ type ProjectRef struct {
 }
 
 type TaskResponse struct {
-	ID          string      `json:"id"`
-	Code        string      `json:"code"`
-	Number      int         `json:"number"`
-	ProjectID   string      `json:"project_id"`
-	Project     *ProjectRef `json:"project,omitempty"`
-	Title       string      `json:"title"`
-	Description *string     `json:"description"`
-	Status      string      `json:"status"`
-	Priority    string      `json:"priority"`
-	Labels      []string    `json:"labels"`
-	Position    float64     `json:"position"`
-	Assignee    *UserRef    `json:"assignee"`
-	CreatedBy   UserRef     `json:"created_by"`
-	StartDate   *string     `json:"start_date"`
-	DueDate     *string     `json:"due_date"`
-	CompletedAt *time.Time  `json:"completed_at"`
-	CreatedAt   time.Time   `json:"created_at"`
-	UpdatedAt   time.Time   `json:"updated_at"`
+	ID           string      `json:"id"`
+	Code         string      `json:"code"`
+	Number       int         `json:"number"`
+	ProjectID    string      `json:"project_id"`
+	Project      *ProjectRef `json:"project,omitempty"`
+	Title        string      `json:"title"`
+	Description  *string     `json:"description"`
+	Status       string      `json:"status"`
+	Priority     string      `json:"priority"`
+	Labels       []string    `json:"labels"`
+	Position     float64     `json:"position"`
+	Assignee     *UserRef    `json:"assignee"`
+	CreatedBy    UserRef     `json:"created_by"`
+	StartDate    *string     `json:"start_date"`
+	DueDate      *string     `json:"due_date"`
+	CommentCount int         `json:"comment_count"`
+	CompletedAt  *time.Time  `json:"completed_at"`
+	CreatedAt    time.Time   `json:"created_at"`
+	UpdatedAt    time.Time   `json:"updated_at"`
 }

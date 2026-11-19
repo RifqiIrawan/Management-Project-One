@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -38,6 +37,7 @@ type TaskRow struct {
 	ProjectName     string
 	ProjectColor    string
 	ProjectKey      string
+	CommentCount    int
 	MyRole          string // hanya terisi oleh FindForUser
 }
 
@@ -48,7 +48,8 @@ t.assignee_id, a.name AS assignee_name, a.avatar_color AS assignee_color,
 t.created_by, c.name AS creator_name,
 to_char(t.start_date, 'YYYY-MM-DD') AS start_date, to_char(t.due_date, 'YYYY-MM-DD') AS due_date,
 t.completed_at, t.created_at, t.updated_at, (p.archived_at IS NOT NULL) AS project_archived,
-p.name AS project_name, p.color AS project_color, p."key" AS project_key`
+p.name AS project_name, p.color AS project_color, p."key" AS project_key,
+(SELECT COUNT(*) FROM comments cm WHERE cm.task_id = t.id) AS comment_count`
 
 const taskFrom = `
 FROM tasks t
@@ -161,15 +162,5 @@ func (r *TaskRepository) Delete(ctx context.Context, taskID string) error {
 
 // LogActivity mencatat riwayat. Panggil di dalam Transaction yang sama dengan perubahannya.
 func (r *TaskRepository) LogActivity(ctx context.Context, projectID string, taskID *string, userID, action string, metadata map[string]any) error {
-	meta, err := json.Marshal(metadata)
-	if err != nil {
-		return fmt.Errorf("marshal activity: %w", err)
-	}
-	err = r.db.WithContext(ctx).Exec(
-		`INSERT INTO activities (project_id, task_id, user_id, action, metadata) VALUES (?, ?, ?, ?, ?::jsonb)`,
-		projectID, taskID, userID, action, string(meta)).Error
-	if err != nil {
-		return fmt.Errorf("log activity: %w", err)
-	}
-	return nil
+	return logActivity(ctx, r.db, projectID, taskID, userID, action, metadata)
 }

@@ -86,20 +86,7 @@ func parseTaskQuery(p dto.TaskListParams, me, today, weekEnd string) (*listQuery
 		q.sorts = append(q.sorts, repository.TaskSort{Field: field, Desc: desc})
 	}
 
-	if s := strings.TrimSpace(p.Page); s != "" {
-		if n, err := strconv.Atoi(s); err != nil || n < 1 || n > maxPage {
-			details["page"] = "Halaman harus angka antara 1 dan 1000000"
-		} else {
-			q.page = n
-		}
-	}
-	if s := strings.TrimSpace(p.PerPage); s != "" {
-		if n, err := strconv.Atoi(s); err != nil || n < 1 || n > maxPerPage {
-			details["per_page"] = "Jumlah per halaman harus angka antara 1 dan 100"
-		} else {
-			q.perPage = n
-		}
-	}
+	q.page, q.perPage = parsePaging(p.Page, p.PerPage, defaultPerPage, details)
 
 	switch strings.ToLower(strings.TrimSpace(p.View)) {
 	case "", "list":
@@ -127,6 +114,26 @@ func parseTaskQuery(p dto.TaskListParams, me, today, weekEnd string) (*listQuery
 		return nil, apperror.Validation(details)
 	}
 	return q, nil
+}
+
+// parsePaging memvalidasi page (1..1.000.000) dan per_page (1..100); kesalahan dicatat di details.
+func parsePaging(page, perPage string, defPerPage int, details map[string]string) (int, int) {
+	pg, per := 1, defPerPage
+	if s := strings.TrimSpace(page); s != "" {
+		if n, err := strconv.Atoi(s); err != nil || n < 1 || n > maxPage {
+			details["page"] = "Halaman harus angka antara 1 dan 1000000"
+		} else {
+			pg = n
+		}
+	}
+	if s := strings.TrimSpace(perPage); s != "" {
+		if n, err := strconv.Atoi(s); err != nil || n < 1 || n > maxPerPage {
+			details["per_page"] = "Jumlah per halaman harus angka antara 1 dan 100"
+		} else {
+			per = n
+		}
+	}
+	return pg, per
 }
 
 // enumList memecah nilai dipisah koma dan memastikan semuanya ada di daftar yang diizinkan.
