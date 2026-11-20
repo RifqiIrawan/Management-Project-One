@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { NavLink, Outlet, useOutletContext, useParams } from 'react-router';
 import { getProject, qk } from '@/api/projects.api';
 import ErrorState from '@/components/common/ErrorState';
-import Spinner from '@/components/common/Spinner';
+import { SkeletonPage } from '@/components/common/Skeleton';
 import { useFavorite } from '@/hooks/useFavorite';
 import type { Project } from '@/types/api';
 import { ensureWhiteText } from '@/utils/color';
@@ -23,7 +23,7 @@ export default function ProjectLayout() {
   const fav = useFavorite();
   const { data: project, isLoading, isError, error, refetch } = useQuery({ queryKey: qk.project(projectId), queryFn: () => getProject(projectId) });
 
-  if (isLoading) return <Spinner label="Memuat proyek..." />;
+  if (isLoading) return <SkeletonPage label="Memuat proyek..." />;
   if (isError) {
     const err = parseError(error);
     // non-anggota dan ID tidak dikenal sama-sama 404: tampilkan halaman tidak ditemukan

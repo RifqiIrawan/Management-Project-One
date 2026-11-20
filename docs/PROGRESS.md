@@ -41,7 +41,11 @@ Belum diverifikasi: gerakan seret dengan mouse/sentuh di browser sungguhan dan t
 (2) padat — tabel dengan 11 kolom yang bisa dipilih, header menempel, density Nyaman/Padat (tabel dan board), ukuran halaman 20/50/100, preferensi tersimpan di browser (`store/viewStore.ts`). Dashboard: kartu angka, Progres Proyek, Tenggat Terdekat, Tugas Saya (`/me/tasks`), Aktivitas. Mode development punya tombol "Masuk sebagai Demo" (akun `demo@example.com`, 3 proyek berwarna).
 Perbaikan: `?task=` kini diganti (bukan ditumpuk) saat membuka tugas lain; tes unit diarahkan ke alamat API mati agar tidak menembak backend asli yang hidup.
 142 tes lulus; `tsc` dan `vite build` bersih. Belum diverifikasi: tampilan seluler, tabel dengan ratusan tugas, drag mouse/sentuh di browser.
-Berikutnya **F4**: Tugas Saya, profil, pencarian cepat (Ctrl+K), shortcut keyboard, empty state, skeleton, responsif. Catatan: bundle JS kini 752 kB, pecah per route (React.lazy) saat F4.
+**F4 selesai**: halaman **Tugas Saya** (dikelompokkan menurut deadline, centang selesai/buka kembali, cari, filter prioritas, tampilkan yang selesai); halaman **Profil** (nama, warna avatar, ganti password dengan indikator kekuatan, keluar dari semua perangkat);
+**pencarian cepat Ctrl+K** (halaman, proyek, tugas saya; panah+Enter) dan **pintasan keyboard** (`/`, `?`, `g` lalu `d`/`t`/`p`/`u`; tidak aktif saat mengetik atau dialog terbuka); **skeleton** pemuatan; **responsif seluler** (board menggulir mendatar dengan snap, panel penuh layar, kartu angka 2x2);
+**route dimuat malas** (bundel awal 764 kB -> 383 kB, peringatan ukuran hilang). 165 tes lulus; tes live F4 7/7 (profil, ganti password, logout semua perangkat, Tugas Saya berkelompok, pencarian). Seluler diperiksa lewat iframe 390px.
+Catatan: Vite dev server pernah melayani modul kosong dari cache basi setelah berkas ditulis ulang (gejala: "Cannot convert object to primitive value" pada rute lazy); cukup simpan ulang berkas atau restart `npm run dev`.
+Belum diverifikasi: perangkat seluler sungguhan (sentuh/seret), tabel dengan ratusan tugas, dan dua tab yang dibuka tepat bersamaan (refresh token berotasi: pemakaian ulang token dianggap pencurian dan mencabut semua sesi).
 Backend (fitur 0-9) sudah selesai dan kontrak API terkunci di `backend/docs/openapi.yaml`.
 
 Rencana per tahap (tiap tahap diuji dan di-commit sendiri):

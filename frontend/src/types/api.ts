@@ -37,3 +37,5 @@ export type Comment = S['Comment'];
 export type CreateTaskRequest = S['CreateTaskRequest'];
 export type UpdateTaskRequest = S['UpdateTaskRequest'];
 export type MoveTaskRequest = S['MoveTaskRequest'];
+
+export type MyTasksGrouped = S['MyTasksGrouped'];

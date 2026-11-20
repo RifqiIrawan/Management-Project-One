@@ -7,7 +7,7 @@ import Avatar from '@/components/common/Avatar';
 import AvatarStack from '@/components/common/AvatarStack';
 import EmptyState from '@/components/common/EmptyState';
 import ErrorState from '@/components/common/ErrorState';
-import Spinner from '@/components/common/Spinner';
+import { SkeletonDashboard, SkeletonRows } from '@/components/common/Skeleton';
 import { PriorityBadge, StatusBadge, isOverdue, localToday } from '@/components/task/badges';
 import type { DashboardStats, Task } from '@/types/api';
 import { ensureWhiteText } from '@/utils/color';
@@ -66,7 +66,7 @@ function MyTasksPanel() {
           ))}
         </div>
       </div>
-      {isLoading && <Spinner label="Memuat tugas..." />}
+      {isLoading && <SkeletonRows rows={4} label="Memuat tugas..." />}
       {isError && <ErrorState message={parseError(error).message} onRetry={() => void refetch()} />}
       {data && rows.length === 0 && <EmptyState icon="bi-check2-all" title="Tidak ada tugas" text={tab === 'selesai' ? 'Belum ada tugas yang selesai.' : 'Tugas yang di-assign ke Anda akan muncul di sini.'} />}
       {rows.length > 0 && (
@@ -128,7 +128,7 @@ export default function DashboardPage() {
         </Link>
       </header>
 
-      {isLoading && <Spinner label="Memuat dashboard..." />}
+      {isLoading && <SkeletonDashboard />}
       {isError && <ErrorState message={parseError(error).message} onRetry={() => void refetch()} />}
 
       {data && (

@@ -4,8 +4,9 @@ import userEvent from '@testing-library/user-event';
 import MockAdapter from 'axios-mock-adapter';
 import { Toaster } from 'react-hot-toast';
 import { createMemoryRouter, RouterProvider } from 'react-router';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { api } from '@/api/axios';
+import { preloadRoutes } from '@/test/preloadRoutes';
 import { routes } from '@/routes';
 import { suggestKey, createProjectSchema } from '@/schemas/project.schema';
 import { useAuthStore } from '@/store/authStore';
@@ -49,6 +50,8 @@ function renderAt(path: string) {
   );
   return router;
 }
+
+beforeAll(preloadRoutes, 30000);
 
 beforeEach(() => {
   mock = new MockAdapter(api);

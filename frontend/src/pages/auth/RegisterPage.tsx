@@ -4,16 +4,9 @@ import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router';
 import { register as registerAccount } from '@/api/auth.api';
 import PasswordInput from '@/components/common/PasswordInput';
-import { passwordStrength, registerSchema, type RegisterFormInput } from '@/schemas/auth.schema';
+import PasswordStrength from '@/components/common/PasswordStrength';
+import { registerSchema, type RegisterFormInput } from '@/schemas/auth.schema';
 import { parseError } from '@/utils/errors';
-
-const STRENGTH = [
-  { label: 'Sangat lemah', color: '#ef4444' },
-  { label: 'Lemah', color: '#f97316' },
-  { label: 'Cukup', color: '#f59e0b' },
-  { label: 'Kuat', color: '#10b981' },
-  { label: 'Sangat kuat', color: '#059669' },
-];
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -26,7 +19,6 @@ export default function RegisterPage() {
     formState: { errors, isSubmitting },
   } = useForm<RegisterFormInput>({ resolver: zodResolver(registerSchema), mode: 'onTouched' });
   const pw = watch('password') ?? '';
-  const strength = passwordStrength(pw);
 
   async function onSubmit(values: RegisterFormInput) {
     setFormError(null);
@@ -77,14 +69,7 @@ export default function RegisterPage() {
         </label>
         <PasswordInput id="password" autoComplete="new-password" invalid={!!errors.password} {...register('password')} />
         {errors.password && <div className="invalid-feedback d-block">{errors.password.message}</div>}
-        {pw && (
-          <div className="mt-2" aria-live="polite">
-            <div className="strength-bar">
-              <span style={{ width: `${((strength + 1) / 5) * 100}%`, background: STRENGTH[strength]?.color }} />
-            </div>
-            <small className="text-secondary">Kekuatan: {STRENGTH[strength]?.label}</small>
-          </div>
-        )}
+        <PasswordStrength value={pw} />
       </div>
       <div className="mb-4">
         <label htmlFor="confirm_password" className="form-label">

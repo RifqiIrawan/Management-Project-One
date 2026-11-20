@@ -1,5 +1,5 @@
 import { Dropdown } from 'react-bootstrap';
-import { useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import toast from 'react-hot-toast';
 import Avatar from '@/components/common/Avatar';
 import ThemeToggle from '@/components/common/ThemeToggle';
@@ -9,9 +9,11 @@ import { useAuthStore } from '@/store/authStore';
 interface Props {
   onMenu: () => void;
   onToggleCollapse: () => void;
+  onSearch: () => void;
+  onHelp: () => void;
 }
 
-export default function Topbar({ onMenu, onToggleCollapse }: Props) {
+export default function Topbar({ onMenu, onToggleCollapse, onSearch, onHelp }: Props) {
   const user = useAuthStore((s) => s.user);
   const navigate = useNavigate();
 
@@ -29,6 +31,11 @@ export default function Topbar({ onMenu, onToggleCollapse }: Props) {
       <button type="button" className="icon-btn d-none d-lg-inline-grid" aria-label="Ciutkan atau lebarkan sidebar" onClick={onToggleCollapse}>
         <i className="bi bi-layout-sidebar-inset fs-5" aria-hidden="true" />
       </button>
+      <button type="button" className="search-trigger" onClick={onSearch} aria-label="Cari (Ctrl+K)">
+        <i className="bi bi-search" aria-hidden="true" />
+        <span className="d-none d-md-inline">Cari tugas, proyek...</span>
+        <kbd className="d-none d-md-inline">Ctrl K</kbd>
+      </button>
       <div className="flex-grow-1" />
       <ThemeToggle />
       {user && (
@@ -41,6 +48,15 @@ export default function Topbar({ onMenu, onToggleCollapse }: Props) {
           </Dropdown.Toggle>
           <Dropdown.Menu>
             <Dropdown.ItemText className="small text-secondary">{user.email}</Dropdown.ItemText>
+            <Dropdown.Divider />
+            <Dropdown.Item as={Link} to="/profile">
+              <i className="bi bi-person-circle me-2" aria-hidden="true" />
+              Profil
+            </Dropdown.Item>
+            <Dropdown.Item onClick={onHelp}>
+              <i className="bi bi-keyboard me-2" aria-hidden="true" />
+              Pintasan keyboard
+            </Dropdown.Item>
             <Dropdown.Divider />
             <Dropdown.Item onClick={() => void onLogout()}>
               <i className="bi bi-box-arrow-right me-2" aria-hidden="true" />

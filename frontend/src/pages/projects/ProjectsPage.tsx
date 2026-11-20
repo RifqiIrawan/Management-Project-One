@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { listProjects, qk } from '@/api/projects.api';
 import EmptyState from '@/components/common/EmptyState';
 import ErrorState from '@/components/common/ErrorState';
-import Spinner from '@/components/common/Spinner';
+import { SkeletonCards } from '@/components/common/Skeleton';
 import CreateProjectModal from '@/components/project/CreateProjectModal';
 import ProjectCard from '@/components/project/ProjectCard';
 import { useFavorite } from '@/hooks/useFavorite';
@@ -53,7 +53,7 @@ export default function ProjectsPage() {
         </div>
       </div>
 
-      {isLoading && <Spinner label="Memuat proyek..." />}
+      {isLoading && <SkeletonCards count={6} label="Memuat proyek..." />}
       {isError && <ErrorState message={parseError(error).message} onRetry={() => void refetch()} />}
       {data && data.length === 0 && (
         <EmptyState

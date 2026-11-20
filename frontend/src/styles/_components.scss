@@ -417,3 +417,162 @@
     color: var(--mpo-text) !important;
   }
 }
+
+// ---- skeleton (kerangka pemuatan) ----
+.skeleton {
+  display: block;
+  background: linear-gradient(90deg, var(--mpo-surface-2) 25%, color-mix(in srgb, var(--mpo-surface-2) 55%, var(--mpo-surface)) 50%, var(--mpo-surface-2) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+// ---- tombol kunci keyboard ----
+kbd,
+.kbd {
+  display: inline-block;
+  padding: 1px 6px;
+  border: 1px solid var(--mpo-border);
+  border-radius: 6px;
+  background: var(--mpo-surface-2);
+  color: var(--mpo-muted);
+  font-family: var(--bs-font-sans-serif);
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1.5;
+  box-shadow: none;
+}
+
+.search-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  height: 40px;
+  min-width: 40px;
+  padding: 0 0.8rem;
+  border: 1px solid var(--mpo-border);
+  border-radius: 12px;
+  background: var(--mpo-surface-2);
+  color: var(--mpo-muted);
+  font-size: 0.875rem;
+  justify-content: center;
+
+  &:hover {
+    color: var(--mpo-text);
+    border-color: var(--mpo-primary);
+  }
+
+  kbd {
+    margin-left: auto;
+  }
+
+  @include media-breakpoint-up(md) {
+    min-width: 300px;
+    justify-content: flex-start;
+  }
+}
+
+// ---- pencarian cepat (Ctrl+K) ----
+.palette-dialog {
+  margin-top: 12vh;
+}
+
+.palette {
+  border-radius: 1.25rem !important;
+  overflow: hidden;
+}
+
+.palette-input {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.95rem 1.1rem;
+  border-bottom: 1px solid var(--mpo-border);
+
+  i {
+    color: var(--mpo-muted);
+    font-size: 1.1rem;
+  }
+
+  input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--mpo-text);
+    font-size: 1rem;
+  }
+}
+
+.palette-list {
+  max-height: min(50vh, 420px);
+  overflow-y: auto;
+  margin: 0;
+  padding: 0.4rem;
+  list-style: none;
+}
+
+.palette-group {
+  padding: 0.6rem 0.75rem 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mpo-subtle);
+}
+
+.palette-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 10px;
+  cursor: pointer;
+  color: var(--mpo-text);
+
+  i {
+    color: var(--mpo-muted);
+  }
+
+  &.is-active {
+    background: var(--mpo-primary-soft);
+    color: var(--mpo-primary-text);
+
+    i {
+      color: inherit;
+    }
+  }
+
+  .palette-hint {
+    margin-left: auto;
+    flex: none;
+    font-size: 0.75rem;
+    color: var(--mpo-muted);
+    white-space: nowrap;
+  }
+}
+
+.palette-empty {
+  padding: 1.5rem 1rem;
+  text-align: center;
+  color: var(--mpo-muted);
+}
+
+.palette-foot {
+  display: flex;
+  gap: 1.25rem;
+  padding: 0.6rem 1.1rem;
+  border-top: 1px solid var(--mpo-border);
+  background: var(--mpo-surface-2);
+  font-size: 0.75rem;
+  color: var(--mpo-muted);
+}

@@ -72,7 +72,7 @@ export default function Sidebar({ collapsed = false, onNavigate }: Props) {
       </div>
 
       {user && (
-        <div className="sidebar-user">
+        <Link to="/profile" className="sidebar-user" onClick={onNavigate} aria-label={`Profil ${user.name}`}>
           <Avatar name={user.name} color={user.avatar_color} size={36} />
           <div className="sidebar-user-text min-w-0">
             <div className="fw-semibold text-truncate">{user.name}</div>
@@ -80,7 +80,7 @@ export default function Sidebar({ collapsed = false, onNavigate }: Props) {
               {user.email}
             </div>
           </div>
-        </div>
+        </Link>
       )}
     </nav>
   );

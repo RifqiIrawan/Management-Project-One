@@ -4,8 +4,9 @@ import userEvent from '@testing-library/user-event';
 import MockAdapter from 'axios-mock-adapter';
 import { Toaster } from 'react-hot-toast';
 import { createMemoryRouter, RouterProvider } from 'react-router';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { api } from '@/api/axios';
+import { preloadRoutes } from '@/test/preloadRoutes';
 import { routes } from '@/routes';
 import { useAuthStore } from '@/store/authStore';
 import { DEFAULT_COLUMNS, useViewStore } from '@/store/viewStore';
@@ -65,6 +66,8 @@ function setup(p: Project = project()) {
   mock.onGet('/tasks/t1/comments').reply(() => ok([]));
   mock.onGet('/tasks/t1/activities').reply(() => ok([]));
 }
+
+beforeAll(preloadRoutes, 30000);
 
 beforeEach(() => {
   useViewStore.setState({ density: 'comfortable', columns: [...DEFAULT_COLUMNS], pageSize: 20 });

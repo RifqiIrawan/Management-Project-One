@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { Outlet } from 'react-router';
 import ThemeToggle from '@/components/common/ThemeToggle';
 
@@ -45,7 +46,9 @@ export default function AuthLayout() {
             <ThemeToggle />
           </div>
           <div className="auth-panel">
-            <Outlet />
+            <Suspense fallback={<div className="visually-hidden" role="status">Memuat...</div>}>
+              <Outlet />
+            </Suspense>
           </div>
         </section>
       </div>

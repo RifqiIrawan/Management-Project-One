@@ -6,7 +6,7 @@ import { listMembers, qk } from '@/api/projects.api';
 import { getBoard, listTasks, tk } from '@/api/tasks.api';
 import EmptyState from '@/components/common/EmptyState';
 import ErrorState from '@/components/common/ErrorState';
-import Spinner from '@/components/common/Spinner';
+import { SkeletonBoard, SkeletonRows } from '@/components/common/Skeleton';
 import CreateTaskModal from '@/components/task/CreateTaskModal';
 import KanbanBoard from '@/components/task/KanbanBoard';
 import TaskDetailPanel from '@/components/task/TaskDetailPanel';
@@ -148,7 +148,7 @@ export default function TaskWorkspace({ view }: { view: 'board' | 'list' }) {
         </div>
       )}
 
-      {q.isLoading && <Spinner label="Memuat tugas..." />}
+      {q.isLoading && (view === 'board' ? <SkeletonBoard /> : <SkeletonRows rows={8} label="Memuat tugas..." />)}
       {q.isError && <ErrorState message={parseError(q.error).message} onRetry={() => void q.refetch()} />}
 
       {view === 'board' && board.data && <KanbanBoard projectId={project.id} board={board.data} params={boardParams} readOnly={readOnly} filtered={filtered} onOpen={openTask} onAdd={setCreateStatus} />}
