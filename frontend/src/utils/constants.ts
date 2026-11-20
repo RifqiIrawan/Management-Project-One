@@ -13,3 +13,11 @@ export const PRIORITY_CONFIG: Record<TaskPriority, { label: string; color: strin
   high: { label: 'High', color: '#F97316', icon: 'bi-arrow-up' },
   urgent: { label: 'Urgent', color: '#EF4444', icon: 'bi-exclamation-triangle-fill' },
 };
+export const STATUSES: TaskStatus[] = ['todo', 'in_progress', 'in_review', 'done'];
+export const PRIORITIES: TaskPriority[] = ['low', 'medium', 'high', 'urgent'];
+export const DUE_OPTIONS = [
+  { value: 'overdue', label: 'Terlambat' },
+  { value: 'today', label: 'Hari ini' },
+  { value: 'week', label: 'Minggu ini' },
+  { value: 'none', label: 'Tanpa deadline' },
+] as const;

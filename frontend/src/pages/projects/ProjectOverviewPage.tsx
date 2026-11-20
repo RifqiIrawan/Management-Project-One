@@ -11,9 +11,6 @@ export default function ProjectOverviewPage() {
             <p className="mb-0">{project.description || <span className="text-secondary">Belum ada deskripsi.</span>}</p>
           </div>
         </div>
-        <div className="alert alert-info mt-3 mb-0" role="note">
-          Board Kanban dan tabel tugas hadir di tahap F3.
-        </div>
       </div>
       <div className="col-12 col-lg-4">
         <div className="card">

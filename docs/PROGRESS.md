@@ -32,7 +32,12 @@ penanda tangan request `src/utils/signature.ts` yang lulus 17 tes termasuk 9 vek
 **F2 selesai** (dashboard: statistik, tugas jatuh tempo, aktivitas, proyek terbaru; daftar proyek dengan cari, arsip, favorit; buat proyek dengan saran kode; halaman proyek dengan tab Ringkasan/Anggota/Pengaturan; pengaturan owner: edit, arsip, hapus dengan ketik nama; anggota: undang dengan saran email, ubah peran, keluarkan, keluar sendiri; breadcrumb memakai nama proyek).
 86 tes lulus (26 baru untuk F2); tes live F2 7/7 dan F1b 6/6 terhadap backend `API_SIGNATURE=enforce`; `tsc` dan `vite build` bersih.
 Catatan: login/register dibatasi 5/menit/IP, jalankan dua file live berurutan (bukan paralel) agar tidak kena 429.
-Berikutnya **F3**: Kanban (drag & drop), tabel tugas, filter, panel detail tugas, komentar & aktivitas. Halaman proyek sudah menyiapkan tempatnya (tab Ringkasan memuat catatan "hadir di F3").
+**F3 selesai** (tab Board dan Tabel pada halaman proyek; Kanban drag & drop dengan @dnd-kit (pointer + keyboard), pemindahan optimistis dan dimuat ulang bila server menolak; posisi desimal dihitung klien;
+filter status/prioritas/penanggung jawab/deadline + cari, tersimpan di URL; tabel dengan sort dan pagination; buat tugas; panel detail `?task=<id>` (bisa dibagikan) untuk edit per field, komentar (teks polos), riwayat, hapus;
+proyek terarsip read-only). Alur drag & drop tidak bisa diuji di jsdom, jadi logikanya dipisah (`utils/taskLogic.ts`) dan dibuktikan terhadap backend sungguhan.
+125 tes lulus; tes live F3 6/6, F2 7/7, F1b 6/6 terhadap backend `API_SIGNATURE=enforce`; `tsc` dan `vite build` bersih.
+Belum diverifikasi: gerakan seret dengan mouse/sentuh di browser sungguhan dan tampilan visual (hanya lewat tes dan build).
+Berikutnya **F4**: Tugas Saya, profil, pencarian cepat (Ctrl+K), shortcut keyboard, empty state, skeleton, responsif. Catatan: bundle JS kini 752 kB, pecah per route (React.lazy) saat F4.
 Backend (fitur 0-9) sudah selesai dan kontrak API terkunci di `backend/docs/openapi.yaml`.
 
 Rencana per tahap (tiap tahap diuji dan di-commit sendiri):

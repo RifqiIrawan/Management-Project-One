@@ -1,4 +1,4 @@
-import type { RouteObject } from 'react-router';
+import { Navigate, type RouteObject } from 'react-router';
 import AppLayout from '@/layouts/AppLayout';
 import AuthLayout from '@/layouts/AuthLayout';
 import LoginPage from '@/pages/auth/LoginPage';
@@ -10,6 +10,7 @@ import ProjectMembersPage from '@/pages/projects/ProjectMembersPage';
 import ProjectOverviewPage from '@/pages/projects/ProjectOverviewPage';
 import ProjectSettingsPage from '@/pages/projects/ProjectSettingsPage';
 import ProjectsPage from '@/pages/projects/ProjectsPage';
+import TaskWorkspace from '@/pages/projects/TaskWorkspace';
 import GuestRoute from './GuestRoute';
 import ProtectedRoute from './ProtectedRoute';
 
@@ -38,7 +39,10 @@ export const routes: RouteObject[] = [
             path: '/projects/:projectId',
             element: <ProjectLayout />,
             children: [
-              { index: true, element: <ProjectOverviewPage /> },
+              { index: true, element: <Navigate to="board" replace /> },
+              { path: 'board', element: <TaskWorkspace view="board" /> },
+              { path: 'list', element: <TaskWorkspace view="list" /> },
+              { path: 'overview', element: <ProjectOverviewPage /> },
               { path: 'members', element: <ProjectMembersPage /> },
               { path: 'settings', element: <ProjectSettingsPage /> },
             ],

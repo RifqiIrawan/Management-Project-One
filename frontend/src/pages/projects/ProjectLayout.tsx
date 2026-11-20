@@ -58,7 +58,17 @@ export default function ProjectLayout() {
 
       <ul className="nav nav-tabs mb-4" aria-label="Bagian proyek">
         <li className="nav-item">
-          <NavLink to={`/projects/${project.id}`} end className={tab}>
+          <NavLink to={`/projects/${project.id}/board`} className={tab}>
+            Board
+          </NavLink>
+        </li>
+        <li className="nav-item">
+          <NavLink to={`/projects/${project.id}/list`} className={tab}>
+            Tabel
+          </NavLink>
+        </li>
+        <li className="nav-item">
+          <NavLink to={`/projects/${project.id}/overview`} className={tab}>
             Ringkasan
           </NavLink>
         </li>

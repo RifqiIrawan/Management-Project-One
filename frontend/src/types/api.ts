@@ -31,3 +31,9 @@ export type DashboardTask = S['DashboardTask'];
 export type DashboardStats = S['DashboardStats'];
 export type CreateProjectRequest = S['CreateProjectRequest'];
 export type UpdateProjectRequest = S['UpdateProjectRequest'];
+
+export type Board = S['Board'];
+export type Comment = S['Comment'];
+export type CreateTaskRequest = S['CreateTaskRequest'];
+export type UpdateTaskRequest = S['UpdateTaskRequest'];
+export type MoveTaskRequest = S['MoveTaskRequest'];
