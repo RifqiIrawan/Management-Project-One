@@ -1,0 +1,64 @@
+// Token desain (mockup). Semua warna lewat variabel CSS agar light dan dark satu sumber.
+:root {
+  --mpo-bg: #f5f6f8;
+  --mpo-surface: #ffffff;
+  --mpo-surface-2: #f2f4f7;
+  --mpo-surface-glass: #ffffff;
+  --mpo-border: #e4e7ec;
+  --mpo-text: #101828;
+  --mpo-muted: #475467;
+  --mpo-subtle: #667085;
+  --mpo-primary: #3b5bdb;
+  --mpo-primary-hover: #2f49b0;
+  --mpo-primary-soft: #eef2ff;
+  --mpo-primary-text: #2f49b0;
+  --mpo-track: #eef0f4;
+
+  --mpo-sidebar: #101828;
+  --mpo-sidebar-active: #1d2939;
+  --mpo-sidebar-text: #d0d5dd;
+  --mpo-sidebar-muted: #98a2b3;
+  --mpo-sidebar-accent: #8ea3f5;
+  --mpo-sidebar-width: 248px;
+  --mpo-sidebar-collapsed: 76px;
+
+  --mpo-radius: 1.125rem;
+  --mpo-radius-sm: 0.75rem;
+  // aksen proyek: tombol utama, tab aktif; diganti per proyek lewat style --accent pada halaman proyek
+  --accent: #3b5bdb;
+  --mpo-shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.06);
+  --mpo-shadow-md: 0 8px 24px -8px rgba(16, 24, 40, 0.16);
+  --mpo-shadow-lg: 0 24px 48px -16px rgba(16, 24, 40, 0.28);
+}
+
+[data-bs-theme='dark'] {
+  --bs-body-bg: #0c111d;
+  --bs-body-color: #f2f4f7;
+  --bs-secondary-color: #98a2b3;
+  --bs-border-color: #263041;
+  --bs-primary: #8ea3f5;
+  --bs-primary-rgb: 142, 163, 245;
+  --bs-link-color: #8ea3f5;
+  --bs-link-hover-color: #b4c2fa;
+  --bs-emphasis-color: #ffffff;
+
+  --mpo-bg: #0c111d;
+  --mpo-surface: #101828;
+  --mpo-surface-2: #1d2939;
+  --mpo-surface-glass: #101828;
+  --mpo-border: #263041;
+  --mpo-text: #f2f4f7;
+  --mpo-muted: #98a2b3;
+  --mpo-subtle: #8a95a8;
+  --mpo-primary: #8ea3f5;
+  --mpo-primary-hover: #b4c2fa;
+  --mpo-primary-soft: rgba(59, 91, 219, 0.2);
+  --mpo-primary-text: #b4c2fa;
+  --mpo-track: #1d2939;
+
+  --mpo-sidebar: #0a0f1c;
+  --mpo-sidebar-active: #1a2336;
+  --mpo-shadow-sm: none;
+  --mpo-shadow-md: 0 10px 28px -10px rgba(0, 0, 0, 0.6);
+  --mpo-shadow-lg: 0 28px 56px -16px rgba(0, 0, 0, 0.75);
+}

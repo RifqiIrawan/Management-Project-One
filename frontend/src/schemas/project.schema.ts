@@ -1,7 +1,8 @@
 import { z } from 'zod';
 
 // Aturan sama dengan backend/internal/dto/project_dto.go.
-export const PROJECT_COLORS = ['#6366F1', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#EC4899', '#8B5CF6', '#14B8A6'] as const;
+// Warna kuat dan ceria: dipakai sebagai identitas proyek (banner, header kartu, aksen tombol dan tab).
+export const PROJECT_COLORS = ['#6366F1', '#4C6EF5', '#0F9D58', '#E8590C', '#FA5252', '#E64980', '#BE4BDB', '#0C8599'] as const;
 
 const name = z.string().trim().min(2, 'Nama minimal 2 karakter').max(150, 'Nama maksimal 150 karakter');
 const description = z.string().max(5000, 'Deskripsi maksimal 5000 karakter');

@@ -42,7 +42,7 @@ beforeEach(() => {
     }),
   );
 });
-afterEach(() => mock.restore());
+afterEach(() => mock.reset()); // adapter tetap terpasang: request terlambat dijawab mock, bukan jaringan
 
 describe('route guard', () => {
   it('belum login: / diarahkan ke /login dan halaman asal diingat', async () => {
@@ -58,10 +58,10 @@ describe('route guard', () => {
     expect(screen.getByRole('status')).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Masuk' })).not.toBeInTheDocument();
   });
-  it('sudah login: /login diarahkan ke dashboard dengan sapaan dan nama', async () => {
+  it('sudah login: /login diarahkan ke dashboard', async () => {
     setStatus('authenticated');
     renderAt('/login');
-    expect(await screen.findByRole('heading', { name: /Budi Santoso/ })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument();
     expect(screen.getByRole('navigation', { name: 'Navigasi utama' })).toBeInTheDocument();
   });
   it('route tidak dikenal: halaman 404 di dalam kerangka aplikasi', async () => {

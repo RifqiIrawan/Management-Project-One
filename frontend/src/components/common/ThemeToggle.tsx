@@ -9,7 +9,7 @@ export default function ThemeToggle() {
   return (
     <button
       type="button"
-      className="btn btn-outline-secondary border-0"
+      className="icon-btn"
       aria-label={`${LABEL[mode]} (klik untuk mengganti)`}
       title={LABEL[mode]}
       onClick={() => setMode(NEXT[mode])}

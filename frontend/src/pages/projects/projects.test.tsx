@@ -54,7 +54,7 @@ beforeEach(() => {
   mock = new MockAdapter(api);
   useAuthStore.setState({ status: 'authenticated', user: me, accessToken: 'tok', signingKey: 'AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyA' });
 });
-afterEach(() => mock.restore());
+afterEach(() => mock.reset()); // adapter tetap terpasang: request terlambat dijawab mock, bukan jaringan
 
 const bodyOf = (call: { data?: string }) => JSON.parse(call.data ?? '{}') as Record<string, unknown>;
 
@@ -110,25 +110,67 @@ describe('dashboard', () => {
       ...over,
     });
 
-  it('menampilkan statistik, tugas jatuh tempo (terlambat ditandai), aktivitas, dan proyek', async () => {
+  const myTask = (id: string, title: string, status: string, priority: string, due: string | null) =>
+    ({ id, code: `KSR-${id}`, number: 1, project_id: 'p1', project: { id: 'p1', name: 'Aplikasi Kasir', key: 'KSR', color: '#3B5BDB' }, title, description: null, status, priority, labels: [], position: 1, assignee: null, created_by: { id: 'u1', name: 'Budi Santoso' }, start_date: null, due_date: due, comment_count: 0, completed_at: null, created_at: '2026-11-01T00:00:00Z', updated_at: '2026-11-01T00:00:00Z' });
+  const mineRows = [myTask('1', 'Desain checkout', 'in_progress', 'high', '2020-01-01'), myTask('2', 'Tulis dokumentasi', 'todo', 'low', null), myTask('3', 'Perbaiki filter', 'done', 'medium', '2026-11-18')];
+
+  it('menampilkan statistik, tenggat terdekat (terlambat ditandai), progres proyek, dan aktivitas', async () => {
     mock.onGet('/dashboard').reply(...dash());
+    mock.onGet('/me/tasks').reply(...ok(mineRows));
+    mock.onGet('/projects').reply(...ok([project()]));
     renderAt('/');
     const stats = await screen.findByRole('group', { name: 'Statistik tugas saya' });
-    expect(within(stats).getByText('9')).toBeInTheDocument();
-    expect(within(stats).getByText('Terlambat')).toBeInTheDocument();
-    const tasks = screen.getByRole('list', { name: 'Tugas jatuh tempo' });
-    expect(within(tasks).getByText('Perbaiki struk')).toBeInTheDocument();
-    expect(within(tasks).getByText(/Terlambat · /)).toBeInTheDocument();
+    expect(within(within(stats).getByText('Tugas aktif').parentElement as HTMLElement).getByText('6')).toBeInTheDocument();
+    expect(within(stats).getByText('2 dikerjakan')).toBeInTheDocument();
+    expect(within(stats).getByText('33% dari total')).toBeInTheDocument();
+    expect(within(within(stats).getByText('Terlambat').parentElement as HTMLElement).getByText('1')).toBeInTheDocument();
+    const due = screen.getByRole('list', { name: 'Tenggat terdekat' });
+    expect(within(due).getByRole('link', { name: 'Perbaiki struk' })).toHaveAttribute('href', '/projects/p1/board?task=t1');
+    expect(within(due).getByText('Terlambat')).toBeInTheDocument(); // teks pembaca layar untuk tanggal lewat
+    const progress = screen.getByRole('list', { name: 'Daftar progres proyek' });
+    expect(within(progress).getByRole('link', { name: 'Aplikasi Kasir' })).toHaveAttribute('href', '/projects/p1');
+    expect(within(progress).getByRole('progressbar', { name: 'Progress Aplikasi Kasir' })).toHaveAttribute('aria-valuenow', '25');
     expect(within(screen.getByRole('list', { name: 'Aktivitas terbaru' })).getByText('Budi membuat KSR-3')).toBeInTheDocument();
-    expect(within(screen.getByRole('list', { name: 'Proyek terbaru' })).getByRole('link', { name: 'Aplikasi Kasir' })).toHaveAttribute('href', '/projects/p1');
+  });
+
+  it('Tugas Saya: tab Semua/Aktif/Selesai menyaring baris; baris menaut ke papan proyek dengan panel terbuka', async () => {
+    mock.onGet('/dashboard').reply(...dash());
+    mock.onGet('/me/tasks').reply(...ok(mineRows));
+    mock.onGet('/projects').reply(...ok([]));
+    renderAt('/');
+    const panel = await screen.findByRole('region', { name: 'Tugas saya' });
+    expect(await within(panel).findByText('Desain checkout')).toBeInTheDocument();
+    expect(within(panel).getAllByRole('row')).toHaveLength(4); // header + 3
+    expect(mock.history.get.find((c) => c.url === '/me/tasks')?.params).toMatchObject({ include_done: true });
+    await userEvent.click(within(panel).getByRole('button', { name: 'Aktif' }));
+    expect(within(panel).queryByText('Perbaiki filter')).not.toBeInTheDocument();
+    expect(within(panel).getAllByRole('row')).toHaveLength(3);
+    await userEvent.click(within(panel).getByRole('button', { name: 'Selesai' }));
+    expect(within(panel).getByText('Perbaiki filter')).toBeInTheDocument();
+    expect(within(panel).queryByText('Desain checkout')).not.toBeInTheDocument();
+    expect(within(panel).getByRole('link', { name: /Perbaiki filter/ })).toHaveAttribute('href', '/projects/p1/board?task=3');
+  });
+
+  it('sidebar menampilkan jumlah tugas aktif dan daftar proyek sebagai tautan', async () => {
+    mock.onGet('/dashboard').reply(...dash());
+    mock.onGet('/me/tasks').reply(...ok([]));
+    mock.onGet('/projects').reply(...ok([project(), project({ id: 'p2', name: 'Backend Core', key: 'BEC', color: '#0E9384' })]));
+    renderAt('/');
+    const nav = await screen.findByRole('navigation', { name: 'Navigasi utama' });
+    expect(await within(nav).findByRole('link', { name: 'Aplikasi Kasir' })).toHaveAttribute('href', '/projects/p1');
+    expect(within(nav).getByRole('link', { name: 'Backend Core' })).toHaveAttribute('href', '/projects/p2');
+    expect(within(nav).getByRole('link', { name: /Tugas Saya/ })).toHaveTextContent('6');
   });
 
   it('akun baru: semua daftar kosong menampilkan empty state, bukan halaman rusak', async () => {
     mock.onGet('/dashboard').reply(...dash({ upcoming_tasks: [], recent_projects: [], recent_activities: [] }));
+    mock.onGet('/me/tasks').reply(...ok([]));
+    mock.onGet('/projects').reply(...ok([]));
     renderAt('/');
     expect(await screen.findByText('Tidak ada tugas mendesak')).toBeInTheDocument();
     expect(screen.getByText('Belum ada aktivitas')).toBeInTheDocument();
     expect(screen.getByText('Belum ada proyek')).toBeInTheDocument();
+    expect(await screen.findByText('Tidak ada tugas')).toBeInTheDocument();
   });
 
   it('gagal memuat: pesan error dengan tombol coba lagi yang memuat ulang', async () => {

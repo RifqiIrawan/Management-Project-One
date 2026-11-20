@@ -37,6 +37,10 @@ filter status/prioritas/penanggung jawab/deadline + cari, tersimpan di URL; tabe
 proyek terarsip read-only). Alur drag & drop tidak bisa diuji di jsdom, jadi logikanya dipisah (`utils/taskLogic.ts`) dan dibuktikan terhadap backend sungguhan.
 125 tes lulus; tes live F3 6/6, F2 7/7, F1b 6/6 terhadap backend `API_SIGNATURE=enforce`; `tsc` dan `vite build` bersih.
 Belum diverifikasi: gerakan seret dengan mouse/sentuh di browser sungguhan dan tampilan visual (hanya lewat tes dan build).
+**Redesain tampilan (setelah F3)**: mengikuti mockup (sidebar gelap, kartu berbingkai tipis, biru `#3B5BDB`, Inter + Space Grotesk) digabung dua arah: (1) ceria — warna kuat per proyek (banner, header kartu, aksen tombol/tab, titik di sidebar), header kolom board berwarna penuh, sudut lebih bulat; teks header selalu putih dan warna latar digelapkan otomatis bila perlu (`utils/color.ts`, kontras >= 3:1);
+(2) padat — tabel dengan 11 kolom yang bisa dipilih, header menempel, density Nyaman/Padat (tabel dan board), ukuran halaman 20/50/100, preferensi tersimpan di browser (`store/viewStore.ts`). Dashboard: kartu angka, Progres Proyek, Tenggat Terdekat, Tugas Saya (`/me/tasks`), Aktivitas. Mode development punya tombol "Masuk sebagai Demo" (akun `demo@example.com`, 3 proyek berwarna).
+Perbaikan: `?task=` kini diganti (bukan ditumpuk) saat membuka tugas lain; tes unit diarahkan ke alamat API mati agar tidak menembak backend asli yang hidup.
+142 tes lulus; `tsc` dan `vite build` bersih. Belum diverifikasi: tampilan seluler, tabel dengan ratusan tugas, drag mouse/sentuh di browser.
 Berikutnya **F4**: Tugas Saya, profil, pencarian cepat (Ctrl+K), shortcut keyboard, empty state, skeleton, responsif. Catatan: bundle JS kini 752 kB, pecah per route (React.lazy) saat F4.
 Backend (fitur 0-9) sudah selesai dan kontrak API terkunci di `backend/docs/openapi.yaml`.
 

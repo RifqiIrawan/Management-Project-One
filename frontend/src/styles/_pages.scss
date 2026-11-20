@@ -1,0 +1,496 @@
+// ---- dashboard ----
+.page-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+
+  .page-date {
+    margin: 0 0 0.25rem;
+    font-size: 0.8125rem;
+    color: var(--mpo-muted);
+  }
+
+  h1 {
+    margin: 0;
+    font-size: 1.875rem;
+    font-weight: 600;
+  }
+}
+
+.stat-card {
+  --tone: transparent;
+  background: color-mix(in srgb, var(--tone) 9%, var(--mpo-surface));
+  border: 1px solid color-mix(in srgb, var(--tone) 24%, var(--mpo-border));
+  border-radius: var(--mpo-radius);
+  padding: 1.1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+
+  .stat-label {
+    margin: 0;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--mpo-muted);
+  }
+
+  .stat-value {
+    font-family: var(--bs-heading-font-family, inherit);
+    font-size: 2.125rem;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.date-tile {
+  width: 48px;
+  flex: none;
+  text-align: center;
+  border: 1px solid var(--mpo-border);
+  border-radius: 10px;
+  padding: 0.4rem 0;
+
+  .mon {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--mpo-muted);
+    text-transform: uppercase;
+  }
+
+  .day {
+    font-family: var(--bs-heading-font-family, inherit);
+    font-size: 1.25rem;
+    font-weight: 600;
+    line-height: 1.1;
+  }
+
+  &.is-late {
+    border-color: #fda29b;
+    .day,
+    .mon {
+      color: #b42318;
+    }
+  }
+}
+
+.project-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.875rem 1.25rem;
+}
+
+.meter {
+  flex: 1;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--mpo-track);
+  overflow: hidden;
+
+  > span {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: var(--pc, #3b5bdb);
+  }
+}
+
+.row-link {
+  color: inherit;
+  display: block;
+  &:hover {
+    color: inherit;
+  }
+}
+
+// ---- proyek: warna kuat sebagai identitas ----
+.project-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+}
+
+.project-card {
+  --pc: #6366f1;
+  position: relative;
+  overflow: hidden;
+
+  &:hover {
+    border-color: var(--pc);
+    box-shadow: 0 14px 30px -14px color-mix(in srgb, var(--pc) 70%, transparent);
+    transform: translateY(-2px);
+  }
+
+  .progress-bar {
+    background-color: var(--pc) !important;
+  }
+
+  .progress {
+    height: 8px !important;
+  }
+}
+
+.project-card-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.85rem 1rem;
+  background:
+    radial-gradient(160px 80px at 100% 0%, rgba(255, 255, 255, 0.28), transparent 70%),
+    var(--pc);
+  color: #fff;
+}
+
+.project-card-mark {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: color-mix(in srgb, #fff 22%, transparent);
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.project-card-key {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  opacity: 0.9;
+}
+
+.project-card-star {
+  position: relative;
+  z-index: 2;
+  margin-left: auto;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.project-banner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding: 1.1rem 1.25rem;
+  border-radius: var(--mpo-radius);
+  color: #fff;
+  background:
+    radial-gradient(420px 160px at 100% 0%, rgba(255, 255, 255, 0.26), transparent 70%),
+    radial-gradient(260px 120px at 0% 130%, rgba(0, 0, 0, 0.14), transparent 70%),
+    var(--accent);
+
+  h1 {
+    font-size: 1.625rem;
+    color: inherit;
+  }
+
+  .project-banner-mark {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 52px;
+    height: 52px;
+    border-radius: 16px;
+    background: color-mix(in srgb, #fff 22%, transparent);
+    font-size: 1.5rem;
+    font-weight: 700;
+  }
+
+  .project-banner-meta {
+    font-size: 0.8125rem;
+    opacity: 0.9;
+  }
+
+  .project-banner-progress {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.35rem;
+    width: 150px;
+
+    strong {
+      font-family: var(--bs-heading-font-family, inherit);
+      font-size: 1.25rem;
+      line-height: 1;
+    }
+
+    .meter {
+      width: 100%;
+      height: 8px;
+      background: color-mix(in srgb, #fff 25%, transparent);
+      > span {
+        background: #fff;
+      }
+    }
+  }
+
+  .project-banner-star {
+    flex: none;
+    width: 40px;
+    height: 40px;
+    border: 0;
+    border-radius: 12px;
+    background: color-mix(in srgb, #fff 20%, transparent);
+    color: inherit;
+    font-size: 1.1rem;
+
+    &:hover {
+      background: color-mix(in srgb, #fff 32%, transparent);
+    }
+  }
+
+  @include media-breakpoint-down(md) {
+    .project-banner-progress {
+      display: none;
+    }
+  }
+}
+
+.avatar-stack-item + .avatar-stack-item {
+  margin-left: -6px;
+}
+
+.avatar-stack-item .avatar {
+  box-shadow: 0 0 0 2px var(--mpo-surface);
+}
+
+.project-header {
+  .tile {
+    width: 40px;
+    height: 40px;
+    font-size: 0.9375rem;
+    border-radius: 10px;
+  }
+
+  h1 {
+    font-size: 1.75rem;
+  }
+}
+
+// ---- kanban ----
+.kanban {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(216px, 1fr));
+  gap: 1rem;
+  overflow-x: auto;
+  padding-bottom: 0.75rem;
+  align-items: start;
+}
+
+.kanban-column {
+  --col: #667085;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--col) 10%, var(--mpo-surface-2));
+  border: 1px solid color-mix(in srgb, var(--col) 28%, var(--mpo-border));
+  border-radius: var(--mpo-radius);
+  min-height: 180px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  &.is-over {
+    border-color: var(--col);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--col) 22%, transparent);
+  }
+
+  .kanban-head {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.7rem 0.9rem;
+    background: var(--col);
+    color: #fff;
+
+    h3 {
+      font-size: 0.875rem;
+      font-weight: 700;
+      margin: 0;
+      color: inherit;
+    }
+  }
+
+  .kanban-body {
+    padding: 0.75rem;
+  }
+
+  .col-count {
+    min-width: 24px;
+    padding: 0 0.5rem;
+    height: 22px;
+    display: inline-grid;
+    place-items: center;
+    border-radius: 999px;
+    background: color-mix(in srgb, #fff 22%, transparent);
+    color: inherit;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+
+  .kanban-head-add {
+    margin-left: auto;
+    display: inline-grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    border: 0;
+    border-radius: 8px;
+    background: color-mix(in srgb, #fff 18%, transparent);
+    color: inherit;
+
+    &:hover {
+      background: color-mix(in srgb, #fff 32%, transparent);
+    }
+  }
+}
+
+.kanban-drop {
+  min-height: 70px;
+  margin: 0;
+  padding: 0;
+}
+
+.kanban-empty {
+  border: 1.5px dashed var(--mpo-border);
+  border-radius: 10px;
+}
+
+.task-card {
+  cursor: grab;
+  touch-action: manipulation;
+  border-radius: 14px;
+
+  &:hover {
+    border-color: #8ea3f5;
+    box-shadow: var(--mpo-shadow-sm);
+  }
+
+  &:active {
+    cursor: grabbing;
+  }
+
+  &.is-overlay {
+    cursor: grabbing;
+    transform: rotate(1.5deg);
+    box-shadow: var(--mpo-shadow-lg);
+    border-color: var(--mpo-primary);
+  }
+}
+
+.task-code {
+  font-size: 0.75rem;
+  color: var(--mpo-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.task-title {
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+  font-size: 0.875rem;
+}
+
+.add-task-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 38px;
+  padding: 0 0.6rem;
+  border: 0;
+  background: transparent;
+  color: var(--mpo-muted);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  border-radius: 8px;
+  text-align: left;
+
+  &:hover {
+    background: color-mix(in srgb, var(--mpo-border) 60%, transparent);
+    color: var(--mpo-text);
+  }
+}
+
+// ---- halaman autentikasi ----
+.auth-hero {
+  position: relative;
+  overflow: hidden;
+  color: #fff;
+  background: #101828;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image: linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+    background-size: 40px 40px;
+    mask-image: radial-gradient(circle at 25% 35%, #000, transparent 70%);
+    -webkit-mask-image: radial-gradient(circle at 25% 35%, #000, transparent 70%);
+  }
+
+  > * {
+    position: relative;
+  }
+
+  .feature {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.85rem 1rem;
+    border-radius: 12px;
+    background: #1d2939;
+    border: 1px solid #344054;
+
+    i {
+      font-size: 1.15rem;
+      color: #8ea3f5;
+    }
+  }
+}
+
+.auth-panel {
+  width: 100%;
+  max-width: 420px;
+  padding: 2rem;
+  border-radius: 1rem;
+  background: var(--mpo-surface);
+  border: 1px solid var(--mpo-border);
+}
+
+// ---- kepadatan: "Padat" memperkecil jarak kartu board (tabel punya aturan sendiri) ----
+.density-compact {
+  .kanban-body {
+    padding: 0.5rem;
+  }
+
+  .kanban-drop {
+    gap: 0.4rem !important;
+  }
+
+  .task-card .card-body {
+    padding: 0.55rem 0.7rem !important;
+  }
+
+  .task-card .tint {
+    padding: 0.05rem 0.5rem;
+    font-size: 0.6875rem;
+  }
+
+  .task-code {
+    font-size: 0.6875rem;
+  }
+}

@@ -23,10 +23,10 @@ export default function Topbar({ onMenu, onToggleCollapse }: Props) {
 
   return (
     <header className="app-topbar d-flex align-items-center gap-2 px-3 py-2">
-      <button type="button" className="btn btn-outline-secondary border-0 d-lg-none" aria-label="Buka menu" onClick={onMenu}>
+      <button type="button" className="icon-btn d-lg-none" aria-label="Buka menu" onClick={onMenu}>
         <i className="bi bi-list fs-5" aria-hidden="true" />
       </button>
-      <button type="button" className="btn btn-outline-secondary border-0 d-none d-lg-inline-flex" aria-label="Ciutkan atau lebarkan sidebar" onClick={onToggleCollapse}>
+      <button type="button" className="icon-btn d-none d-lg-inline-grid" aria-label="Ciutkan atau lebarkan sidebar" onClick={onToggleCollapse}>
         <i className="bi bi-layout-sidebar-inset fs-5" aria-hidden="true" />
       </button>
       <div className="flex-grow-1" />
@@ -34,7 +34,9 @@ export default function Topbar({ onMenu, onToggleCollapse }: Props) {
       {user && (
         <Dropdown align="end">
           <Dropdown.Toggle variant="link" className="p-0 text-decoration-none d-flex align-items-center gap-2" aria-label="Menu pengguna">
-            <Avatar name={user.name} color={user.avatar_color} />
+            <span className="avatar-ring">
+              <Avatar name={user.name} color={user.avatar_color} />
+            </span>
             <span className="d-none d-md-inline text-body fw-medium">{user.name}</span>
           </Dropdown.Toggle>
           <Dropdown.Menu>

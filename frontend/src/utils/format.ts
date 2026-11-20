@@ -24,3 +24,9 @@ export function shortDate(date: string): string {
   const d = dayjs(date);
   return d.isValid() ? d.format('D MMM') : '';
 }
+
+/** "20 Nov 2026" dari timestamp ISO atau tanggal. */
+export function fullDate(value: string): string {
+  const d = dayjs(value);
+  return d.isValid() ? d.format('D MMM YYYY') : '';
+}

@@ -43,11 +43,11 @@ export default function ProjectsPage() {
           </label>
           <input id="project-search" type="search" className="form-control" placeholder="Cari proyek..." value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        <div className="btn-group" role="group" aria-label="Tampilan proyek">
-          <button type="button" className={`btn ${archived ? 'btn-outline-secondary' : 'btn-secondary'}`} aria-pressed={!archived} onClick={() => setArchived(false)}>
+        <div className="segmented" role="group" aria-label="Tampilan proyek">
+          <button type="button" aria-pressed={!archived} onClick={() => setArchived(false)}>
             Aktif
           </button>
-          <button type="button" className={`btn ${archived ? 'btn-secondary' : 'btn-outline-secondary'}`} aria-pressed={archived} onClick={() => setArchived(true)}>
+          <button type="button" aria-pressed={archived} onClick={() => setArchived(true)}>
             Arsip
           </button>
         </div>
@@ -70,9 +70,9 @@ export default function ProjectsPage() {
         />
       )}
       {data && data.length > 0 && (
-        <ul className="row g-3 list-unstyled" aria-label="Daftar proyek">
+        <ul className="project-grid list-unstyled" aria-label="Daftar proyek">
           {data.map((p) => (
-            <li key={p.id} className="col-12 col-md-6 col-xl-4">
+            <li key={p.id}>
               <ProjectCard project={p} onToggleFavorite={(x) => fav.mutate(x.id)} />
             </li>
           ))}

@@ -1,0 +1,419 @@
+// Komponen dasar (sesuai mockup): kartu berbingkai tipis, tombol solid, chip lembut, tab garis bawah.
+.card {
+  background: var(--mpo-surface);
+  border: 1px solid var(--mpo-border);
+  border-radius: var(--mpo-radius);
+  box-shadow: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.panel {
+  background: var(--mpo-surface);
+  border: 1px solid var(--mpo-border);
+  border-radius: var(--mpo-radius);
+  padding: 1.25rem 1.375rem;
+}
+
+.panel-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.list-group {
+  --bs-list-group-bg: var(--mpo-surface);
+  --bs-list-group-border-color: var(--mpo-border);
+  border-radius: var(--mpo-radius);
+}
+
+// ---- tombol ----
+.btn-primary {
+  --bs-btn-color: #fff;
+  --bs-btn-bg: var(--accent, #3b5bdb);
+  --bs-btn-border-color: var(--accent, #3b5bdb);
+  --bs-btn-hover-bg: color-mix(in srgb, var(--accent, #3b5bdb) 84%, #000);
+  --bs-btn-hover-border-color: color-mix(in srgb, var(--accent, #3b5bdb) 84%, #000);
+  --bs-btn-hover-color: #fff;
+  --bs-btn-active-bg: color-mix(in srgb, var(--accent, #3b5bdb) 72%, #000);
+  --bs-btn-active-border-color: color-mix(in srgb, var(--accent, #3b5bdb) 72%, #000);
+  --bs-btn-active-color: #fff;
+  --bs-btn-disabled-bg: var(--accent, #3b5bdb);
+  --bs-btn-disabled-border-color: var(--accent, #3b5bdb);
+  --bs-btn-disabled-color: #fff;
+}
+
+.btn-outline-secondary {
+  --bs-btn-color: var(--mpo-text);
+  --bs-btn-border-color: var(--mpo-border);
+  --bs-btn-hover-bg: var(--mpo-surface-2);
+  --bs-btn-hover-color: var(--mpo-text);
+  --bs-btn-hover-border-color: var(--mpo-border);
+  --bs-btn-active-bg: var(--mpo-surface-2);
+  --bs-btn-active-color: var(--mpo-text);
+  --bs-btn-active-border-color: var(--mpo-border);
+  --bs-btn-disabled-border-color: var(--mpo-border);
+  background: var(--mpo-surface);
+  font-weight: 500;
+}
+
+.btn-secondary {
+  --bs-btn-bg: var(--mpo-primary-soft);
+  --bs-btn-color: var(--mpo-primary-text);
+  --bs-btn-border-color: var(--mpo-primary-soft);
+  --bs-btn-hover-bg: var(--mpo-primary-soft);
+  --bs-btn-hover-color: var(--mpo-primary-text);
+  --bs-btn-hover-border-color: var(--mpo-primary-soft);
+  --bs-btn-active-bg: var(--mpo-primary-soft);
+  --bs-btn-active-color: var(--mpo-primary-text);
+}
+
+.btn-outline-danger {
+  --bs-btn-color: #b42318;
+  --bs-btn-border-color: #fda29b;
+  --bs-btn-hover-bg: #fef3f2;
+  --bs-btn-hover-color: #b42318;
+  --bs-btn-hover-border-color: #fda29b;
+}
+
+.btn-link {
+  --bs-btn-color: var(--mpo-primary);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+// ---- form ----
+.form-control,
+.form-select {
+  background-color: var(--mpo-surface);
+  border-color: var(--mpo-border);
+  color: var(--mpo-text);
+  &:disabled {
+    background-color: var(--mpo-surface-2);
+  }
+}
+
+.form-label {
+  font-weight: 600;
+  font-size: 0.8125rem;
+  color: var(--mpo-muted);
+}
+
+// ---- segmented control (Semua | Aktif | Selesai) ----
+.segmented {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 10px;
+  background: var(--mpo-surface-2);
+
+  button {
+    border: 0;
+    background: transparent;
+    color: var(--mpo-muted);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    padding: 0.45rem 0.8rem;
+    border-radius: 7px;
+    cursor: pointer;
+
+    &[aria-pressed='true'],
+    &[aria-selected='true'] {
+      background: var(--mpo-surface);
+      color: var(--mpo-text);
+      font-weight: 600;
+      box-shadow: 0 1px 2px rgba(16, 24, 40, 0.1);
+    }
+  }
+}
+
+// ---- chip lembut: warna teks = --c, latar = 9% dari --c ----
+.tint {
+  --c: #475467;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.35;
+  white-space: nowrap;
+  color: var(--c);
+  background: color-mix(in srgb, var(--c) 9%, transparent);
+
+  &.pill {
+    border-radius: 999px;
+  }
+
+  &.dot::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--c);
+  }
+}
+
+[data-bs-theme='dark'] .tint {
+  color: color-mix(in srgb, var(--c) 55%, #fff);
+  background: color-mix(in srgb, var(--c) 22%, transparent);
+}
+
+.badge.text-bg-secondary,
+.badge.text-bg-light {
+  background: var(--mpo-surface-2) !important;
+  color: var(--mpo-muted) !important;
+  font-weight: 600;
+}
+
+.badge.text-bg-primary {
+  background: var(--mpo-primary-soft) !important;
+  color: var(--mpo-primary-text) !important;
+}
+
+// ---- tab proyek (garis bawah biru) ----
+.nav-tabs {
+  gap: 0.25rem;
+  border-bottom: 1px solid var(--mpo-border);
+
+  .nav-link {
+    position: relative;
+    border: 0;
+    border-radius: 0;
+    padding: 0.7rem 0.9rem;
+    color: var(--mpo-muted);
+    font-weight: 500;
+    background: transparent;
+
+    &:hover {
+      color: var(--mpo-text);
+    }
+
+    &.active {
+      color: var(--accent, var(--mpo-primary-text));
+      font-weight: 700;
+      background: transparent;
+
+      &::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: -1px;
+        height: 3px;
+        border-radius: 3px 3px 0 0;
+        background: var(--accent, var(--mpo-primary));
+      }
+    }
+  }
+}
+
+.nav-pills .nav-link {
+  color: var(--mpo-muted);
+  font-weight: 600;
+  border-radius: 8px;
+
+  &.active {
+    background: var(--mpo-primary-soft);
+    color: var(--mpo-primary-text);
+  }
+}
+
+// ---- tabel ----
+.table {
+  --bs-table-bg: transparent;
+  --bs-table-hover-bg: var(--mpo-surface-2);
+  --bs-table-border-color: var(--mpo-border);
+  margin-bottom: 0;
+
+  thead th {
+    background: transparent;
+    color: var(--mpo-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    padding: 0.7rem 0.6rem;
+    border-bottom: 1px solid var(--mpo-border);
+  }
+
+  td {
+    padding: 0.8rem 0.6rem;
+    border-bottom: 1px solid var(--mpo-surface-2);
+  }
+}
+
+.table-responsive {
+  background: var(--mpo-surface);
+  border: 1px solid var(--mpo-border);
+  border-radius: var(--mpo-radius);
+  padding: 0.4rem 0.8rem;
+}
+
+// ---- dropdown, modal, panel ----
+.dropdown-menu {
+  background: var(--mpo-surface);
+  border: 1px solid var(--mpo-border);
+  padding: 0.4rem;
+
+  .dropdown-item {
+    border-radius: 0.5rem;
+  }
+}
+
+.modal-content,
+.offcanvas {
+  background: var(--mpo-surface);
+  border: 1px solid var(--mpo-border);
+  box-shadow: var(--mpo-shadow-lg);
+}
+
+.modal-backdrop.show,
+.offcanvas-backdrop.show {
+  --bs-backdrop-opacity: 0.45;
+}
+
+.modal-header,
+.offcanvas-header {
+  border-bottom: 1px solid var(--mpo-border);
+}
+
+.modal-footer {
+  border-top: 1px solid var(--mpo-border);
+}
+
+.alert {
+  border-radius: 0.75rem;
+}
+
+.progress {
+  --bs-progress-bg: var(--mpo-track);
+  --bs-progress-border-radius: 999px;
+  overflow: hidden;
+}
+
+.tile {
+  --c: #3b5bdb;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  background: var(--c);
+  color: #fff;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.tile-soft {
+  background: color-mix(in srgb, var(--c) 12%, transparent);
+  color: var(--c);
+}
+
+.comment-body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.strength-bar {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--mpo-border);
+  overflow: hidden;
+
+  > span {
+    display: block;
+    height: 100%;
+    transition: width 0.2s ease, background 0.2s ease;
+  }
+}
+
+.color-swatch {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  padding: 0;
+
+  &.is-selected {
+    border-color: var(--mpo-text);
+    box-shadow: 0 0 0 3px var(--mpo-surface) inset;
+  }
+}
+
+// ---- tabel padat (gaya Jira): header menempel, baris rapat, garis prioritas di kiri ----
+.dense-scroll {
+  max-height: calc(100vh - 360px);
+  min-height: 240px;
+  overflow: auto;
+  padding: 0 0.25rem;
+
+  thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--mpo-surface);
+    box-shadow: 0 1px 0 var(--mpo-border);
+  }
+}
+
+.task-table {
+  .task-row {
+    cursor: pointer;
+    td:first-child {
+      box-shadow: inset 3px 0 0 var(--stripe, transparent);
+    }
+  }
+
+  .col-title {
+    min-width: 260px;
+    max-width: 460px;
+  }
+
+  .row-title {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.table-compact {
+  font-size: 0.8125rem;
+
+  .table thead th {
+    padding: 0.4rem 0.5rem;
+    font-size: 0.6875rem;
+  }
+
+  .table td {
+    padding: 0.22rem 0.5rem;
+    line-height: 1.25;
+  }
+
+  .tint {
+    padding: 0.05rem 0.5rem;
+    font-size: 0.6875rem;
+  }
+}
+
+.table-comfortable .table td {
+  padding-block: 0.7rem;
+}
+
+// header tabel: tombol urut tampil sama dengan header biasa (huruf kecil kapital, redup)
+.table thead th .btn-link {
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: var(--mpo-muted) !important;
+  font-weight: 600;
+
+  &:hover {
+    color: var(--mpo-text) !important;
+  }
+}

@@ -17,6 +17,8 @@ export default defineConfig({
     environment: 'jsdom',
     // origin sama dengan dev server agar tes live lolos CORS backend (CORS_ORIGINS=http://localhost:6969)
     environmentOptions: { jsdom: { url: 'http://localhost:6969' } },
+    // tes unit tidak boleh menembak backend asli yang kebetulan hidup (request terlambat -> 401 -> sesi tes terhapus)
+    env: { VITE_API_URL: 'http://127.0.0.1:9/api/v1' },
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
     css: false,

@@ -5,6 +5,7 @@ import ErrorState from '@/components/common/ErrorState';
 import Spinner from '@/components/common/Spinner';
 import { useFavorite } from '@/hooks/useFavorite';
 import type { Project } from '@/types/api';
+import { ensureWhiteText } from '@/utils/color';
 import { parseError } from '@/utils/errors';
 import NotFoundPage from '../NotFoundPage';
 
@@ -35,19 +36,27 @@ export default function ProjectLayout() {
   const tab = ({ isActive }: { isActive: boolean }) => `nav-link${isActive ? ' active' : ''}`;
 
   return (
-    <section>
-      <header className="d-flex align-items-center gap-3 mb-3">
-        <span className="fs-2" aria-hidden="true">
-          {project.icon || '📁'}
+    <section style={{ '--accent': ensureWhiteText(project.color) } as React.CSSProperties}>
+      <header className="project-banner">
+        <span className="project-banner-mark" aria-hidden="true">
+          {project.icon || project.key.slice(0, 2)}
         </span>
         <div className="flex-grow-1 min-w-0">
-          <h1 className="h3 fw-bold mb-0 text-truncate">{project.name}</h1>
-          <span className="small text-secondary">{project.key}</span>
-          {project.archived_at && <span className="badge text-bg-secondary ms-2">Diarsipkan</span>}
+          <h1 className="mb-0 text-truncate">{project.name}</h1>
+          <span className="project-banner-meta">
+            {project.key} · {project.member_count} anggota · {project.done_count}/{project.task_count} tugas selesai
+            {project.archived_at && <span className="badge text-bg-secondary ms-2">Diarsipkan</span>}
+          </span>
+        </div>
+        <div className="project-banner-progress" aria-hidden="true">
+          <strong>{project.progress}%</strong>
+          <span className="meter">
+            <span style={{ width: `${project.progress}%` }} />
+          </span>
         </div>
         <button
           type="button"
-          className="btn btn-outline-warning"
+          className="project-banner-star"
           aria-pressed={project.is_favorite}
           aria-label={project.is_favorite ? 'Hapus dari favorit' : 'Jadikan favorit'}
           onClick={() => fav.mutate(project.id)}

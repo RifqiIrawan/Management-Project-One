@@ -8,6 +8,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { api } from '@/api/axios';
 import { routes } from '@/routes';
 import { useAuthStore } from '@/store/authStore';
+import { DEFAULT_COLUMNS, useViewStore } from '@/store/viewStore';
+import { contrastRatio } from '@/utils/color';
 import type { Comment, Member, Project, Task } from '@/types/api';
 
 const me = { id: 'u1', name: 'Budi Santoso', email: 'budi@x.co', avatar_color: '#6366F1', last_login_at: null, created_at: '2026-01-01T00:00:00Z' };
@@ -65,10 +67,11 @@ function setup(p: Project = project()) {
 }
 
 beforeEach(() => {
+  useViewStore.setState({ density: 'comfortable', columns: [...DEFAULT_COLUMNS], pageSize: 20 });
   mock = new MockAdapter(api);
   useAuthStore.setState({ status: 'authenticated', user: me, accessToken: 'tok', signingKey: 'AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyA' });
 });
-afterEach(() => mock.restore());
+afterEach(() => mock.reset()); // adapter tetap terpasang: request terlambat dijawab mock, bukan jaringan
 
 const taskGets = () => mock.history.get.filter((c) => c.url === '/projects/p1/tasks');
 
@@ -370,5 +373,103 @@ describe('komentar & riwayat', () => {
     renderAt('/projects/p1/board?task=t1');
     await userEvent.click(await screen.findByRole('button', { name: 'Riwayat' }));
     expect(await screen.findByText('Budi membuat tugas KSR-1')).toBeInTheDocument();
+  });
+});
+
+describe('tampilan berwarna dan padat', () => {
+  it('banner proyek memakai warna proyek sebagai aksen; warna terang digelapkan agar teks putih terbaca', async () => {
+    setup(project({ color: '#F59F00', name: 'Aplikasi Kasir' })); // kuning terang
+    renderAt('/projects/p1/board');
+    const banner = (await screen.findByRole('heading', { name: 'Aplikasi Kasir', level: 1 })).closest('section') as HTMLElement;
+    const accent = banner.style.getPropertyValue('--accent');
+    expect(accent).not.toBe('#F59F00');
+    expect(contrastRatio(accent, '#FFFFFF')).toBeGreaterThanOrEqual(3);
+    expect(banner.style.getPropertyValue('--accent-ink')).toBe(''); // tidak ada lagi pilihan teks gelap: selalu putih
+  });
+
+  it('warna proyek yang sudah gelap dipakai apa adanya sebagai aksen', async () => {
+    setup(project({ color: '#E64980' }));
+    renderAt('/projects/p1/board');
+    const banner = (await screen.findByRole('heading', { name: 'Aplikasi Kasir', level: 1 })).closest('section') as HTMLElement;
+    expect(banner.style.getPropertyValue('--accent')).toBe('#E64980');
+  });
+
+  it('header kolom board berwarna penuh per status, semuanya berteks putih (kontras terjamin)', async () => {
+    setup();
+    renderAt('/projects/p1/board');
+    const fills: Record<string, string> = { 'Kolom To Do': '#667085', 'Kolom In Progress': '#3B5BDB', 'Kolom In Review': '#E8590C', 'Kolom Done': '#0F9D58' };
+    await screen.findByRole('region', { name: 'Kolom To Do' });
+    for (const [name, fill] of Object.entries(fills)) {
+      const col = screen.getByRole('region', { name });
+      expect(col.style.getPropertyValue('--col')).toBe(fill);
+      expect(col.style.getPropertyValue('--col-ink')).toBe(''); // teks selalu putih lewat CSS, bukan per kolom
+      expect(contrastRatio(fill, '#FFFFFF')).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it('tabel menampilkan kolom bawaan; header yang tidak bisa diurutkan tidak berupa tombol', async () => {
+    setup();
+    renderAt('/projects/p1/list');
+    const table = await screen.findByRole('table');
+    for (const h of ['Kode', 'Judul', 'Status', 'Prioritas', 'Penanggung jawab', 'Label', 'Deadline', 'Komentar', 'Diperbarui']) expect(within(table).getByRole('columnheader', { name: h })).toBeInTheDocument();
+    expect(within(table).queryByRole('columnheader', { name: 'Dibuat' })).not.toBeInTheDocument();
+    expect(within(table).getByRole('button', { name: 'Prioritas' })).toBeInTheDocument();
+    expect(within(table).queryByRole('button', { name: 'Penanggung jawab' })).not.toBeInTheDocument();
+    expect(within(table).queryByRole('button', { name: 'Label' })).not.toBeInTheDocument();
+  });
+
+  it('pemilih kolom: menambah/menyembunyikan kolom, judul terkunci, pilihan tersimpan di browser', async () => {
+    setup();
+    renderAt('/projects/p1/list');
+    await screen.findByRole('table');
+    await userEvent.click(screen.getByRole('button', { name: 'Pilih kolom tabel' }));
+    expect(await screen.findByLabelText('Judul')).toBeDisabled();
+    await userEvent.click(screen.getByLabelText('Dibuat'));
+    await userEvent.click(screen.getByLabelText('Label'));
+    const table = screen.getByRole('table');
+    expect(within(table).getByRole('columnheader', { name: 'Dibuat' })).toBeInTheDocument();
+    expect(within(table).queryByRole('columnheader', { name: 'Label' })).not.toBeInTheDocument();
+    expect(JSON.parse(localStorage.getItem('mpo.view') ?? '{}').columns).toContain('created_at');
+    expect(JSON.parse(localStorage.getItem('mpo.view') ?? '{}').columns).not.toContain('labels');
+    await userEvent.click(screen.getByRole('button', { name: 'Kembalikan bawaan' }));
+    expect(within(table).getByRole('columnheader', { name: 'Label' })).toBeInTheDocument();
+  });
+
+  it('kepadatan: Padat memberi kelas tabel rapat dan board rapat, tersimpan; Nyaman mengembalikan', async () => {
+    setup();
+    renderAt('/projects/p1/list');
+    await screen.findByRole('table');
+    expect(screen.getByRole('table').closest('.table-responsive')).toHaveClass('table-comfortable');
+    await userEvent.click(screen.getByRole('button', { name: 'Padat' }));
+    expect(screen.getByRole('table').closest('.table-responsive')).toHaveClass('table-compact');
+    expect(document.querySelector('.task-workspace')).toHaveClass('density-compact');
+    expect(JSON.parse(localStorage.getItem('mpo.view') ?? '{}').density).toBe('compact');
+    await userEvent.click(screen.getByRole('button', { name: 'Nyaman' }));
+    expect(document.querySelector('.task-workspace')).toHaveClass('density-comfortable');
+  });
+
+  it('ukuran halaman: memilih 50 mengirim per_page=50 dan kembali ke halaman 1', async () => {
+    setup();
+    mock.onGet('/projects/p1/tasks').reply((cfg) => ok([t1], { page: Number((cfg.params as Record<string, number>)['page'] ?? 1), per_page: Number((cfg.params as Record<string, number>)['per_page']), total: 300, total_pages: 6 }));
+    renderAt('/projects/p1/list?page=3');
+    await screen.findByRole('table');
+    expect(taskGets()[0]?.params).toMatchObject({ per_page: 20, page: 3 });
+    await userEvent.selectOptions(screen.getByLabelText('Per halaman'), '50');
+    await waitFor(() => expect(taskGets().some((c) => c.params?.per_page === 50 && c.params?.page === 1)).toBe(true));
+    expect(router.state.location.search).not.toContain('page=');
+    expect(JSON.parse(localStorage.getItem('mpo.view') ?? '{}').pageSize).toBe(50);
+  });
+
+  it('klik di mana saja pada baris membuka panel; tombol judul tidak membuka dua kali', async () => {
+    setup();
+    renderAt('/projects/p1/list');
+    const table = await screen.findByRole('table');
+    const row = within(table).getByText('KSR-2').closest('tr') as HTMLElement;
+    await userEvent.click(row);
+    await waitFor(() => expect(router.state.location.search).toContain('task=t2'));
+    const before = router.state.location.search;
+    await userEvent.click(within(table).getByRole('button', { name: 'Buat halaman login' }));
+    await waitFor(() => expect(new URLSearchParams(router.state.location.search).getAll('task')).toEqual(['t1']));
+    expect(router.state.location.search).not.toBe(before); // mengganti ?task=, tidak menumpuk parameter
   });
 });

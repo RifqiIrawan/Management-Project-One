@@ -19,6 +19,7 @@ import { moveTask, tk, type Params } from '@/api/tasks.api';
 import type { Board, Task, TaskStatus } from '@/types/api';
 import { STATUS_CONFIG, STATUSES } from '@/utils/constants';
 import { parseError } from '@/utils/errors';
+import { ensureWhiteText } from '@/utils/color';
 import { applyPlan, columnsFromBoard, findColumn, moveInColumns, planMove, type Columns } from '@/utils/taskLogic';
 import TaskCard, { TaskCardBody } from './TaskCard';
 
@@ -36,19 +37,19 @@ function Column({ status, tasks, readOnly, filtered, onOpen, onAdd }: { status: 
   const { setNodeRef, isOver } = useDroppable({ id: status });
   const c = STATUS_CONFIG[status];
   return (
-    <section className={`kanban-column${isOver ? ' is-over' : ''}`} aria-label={`Kolom ${c.label}`}>
-      <header className="d-flex align-items-center gap-2 mb-2 px-1">
-        <i className={`bi ${c.icon}`} style={{ color: c.color }} aria-hidden="true" />
-        <h3 className="h6 mb-0">{c.label}</h3>
-        <span className="badge text-bg-secondary rounded-pill" aria-label={`${tasks.length} tugas`}>
+    <section className={`kanban-column${isOver ? ' is-over' : ''}`} style={{ '--col': ensureWhiteText(c.fill) } as React.CSSProperties} aria-label={`Kolom ${c.label}`}>
+      <header className="kanban-head">
+        <h3>{c.label}</h3>
+        <span className="col-count" aria-label={`${tasks.length} tugas`}>
           {tasks.length}
         </span>
         {!readOnly && (
-          <button type="button" className="btn btn-sm btn-link ms-auto p-0" aria-label={`Tambah tugas di ${c.label}`} onClick={() => onAdd(status)}>
+          <button type="button" className="kanban-head-add" aria-label={`Tambah tugas di ${c.label}`} onClick={() => onAdd(status)}>
             <i className="bi bi-plus-lg" aria-hidden="true" />
           </button>
         )}
       </header>
+      <div className="kanban-body">
       <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
         <ul ref={setNodeRef} className="list-unstyled d-grid gap-2 kanban-drop" aria-label={`Tugas ${c.label}`}>
           {tasks.map((t) => (
@@ -57,6 +58,13 @@ function Column({ status, tasks, readOnly, filtered, onOpen, onAdd }: { status: 
           {tasks.length === 0 && <li className="kanban-empty small text-secondary text-center py-3">{filtered ? 'Tidak ada yang cocok' : 'Kosong'}</li>}
         </ul>
       </SortableContext>
+      {!readOnly && (
+        <button type="button" className="add-task-btn mt-2" onClick={() => onAdd(status)}>
+          <i className="bi bi-plus-lg" aria-hidden="true" />
+          Tambah tugas
+        </button>
+      )}
+      </div>
     </section>
   );
 }
@@ -124,8 +132,8 @@ export default function KanbanBoard({ projectId, board, params, readOnly, filter
       </div>
       <DragOverlay>
         {active ? (
-          <div className="card task-card shadow">
-            <div className="card-body p-2">
+          <div className="card task-card is-overlay">
+            <div className="card-body p-3">
               <TaskCardBody task={active} />
             </div>
           </div>

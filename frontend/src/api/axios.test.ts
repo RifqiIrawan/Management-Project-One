@@ -15,7 +15,7 @@ beforeEach(() => {
   mock = new MockAdapter(api);
   useAuthStore.setState({ status: 'authenticated', user, accessToken: 'tok1', signingKey: KEY1, clockOffsetSeconds: 0 });
 });
-afterEach(() => mock.restore());
+afterEach(() => mock.reset()); // adapter tetap terpasang: request terlambat dijawab mock, bukan jaringan
 
 const unauthorized = (code: string) => [401, { success: false, error: { code, message: code } }] as [number, unknown];
 

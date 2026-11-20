@@ -5,7 +5,7 @@ import type { Task, TaskPriority, TaskStatus } from '@/types/api';
 export function StatusBadge({ status }: { status: TaskStatus }) {
   const c = STATUS_CONFIG[status];
   return (
-    <span className="badge rounded-pill" style={{ background: c.color }}>
+    <span className="tint pill dot" style={{ '--c': c.color } as React.CSSProperties}>
       {c.label}
     </span>
   );
@@ -14,8 +14,7 @@ export function StatusBadge({ status }: { status: TaskStatus }) {
 export function PriorityBadge({ priority }: { priority: TaskPriority }) {
   const c = PRIORITY_CONFIG[priority];
   return (
-    <span className="badge" style={{ background: c.color }} title={`Prioritas ${c.label}`}>
-      <i className={`bi ${c.icon} me-1`} aria-hidden="true" />
+    <span className="tint" style={{ '--c': c.color } as React.CSSProperties} title={`Prioritas ${c.label}`}>
       {c.label}
     </span>
   );
@@ -30,8 +29,8 @@ export function DueDate({ task, today }: { task: Pick<Task, 'due_date' | 'status
   if (!task.due_date) return null;
   const late = isOverdue(task, today);
   return (
-    <span className={`small ${late ? 'text-danger fw-semibold' : 'text-secondary'}`} title={late ? 'Terlambat' : 'Deadline'}>
-      <i className="bi bi-calendar-event me-1" aria-hidden="true" />
+    <span className="small d-inline-flex align-items-center gap-1 fw-medium" style={{ color: late ? '#B42318' : 'var(--mpo-muted)' }} title={late ? 'Terlambat' : 'Deadline'}>
+      <i className="bi bi-clock" aria-hidden="true" />
       {late && <span className="visually-hidden">Terlambat: </span>}
       {shortDate(task.due_date)}
     </span>

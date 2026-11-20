@@ -12,7 +12,9 @@ import { useAuthStore } from '@/store/authStore';
 import type { Task, TaskPriority, TaskStatus, UpdateTaskRequest } from '@/types/api';
 import { PRIORITIES, PRIORITY_CONFIG, STATUS_CONFIG, STATUSES } from '@/utils/constants';
 import { parseError } from '@/utils/errors';
+import { labelColor } from '@/utils/constants';
 import ActivityList from './ActivityList';
+import { PriorityBadge, StatusBadge } from './badges';
 import CommentSection from './CommentSection';
 
 interface Props {
@@ -77,6 +79,16 @@ function Body({ task, projectId, readOnly, isOwner, onClose }: { task: Task; pro
 
   return (
     <>
+      <div className="d-flex flex-wrap align-items-center gap-2 mb-3" aria-label="Ringkasan tugas">
+        <span className="task-code">{task.code}</span>
+        {task.labels.slice(0, 3).map((l) => (
+          <span key={l} className="tint" style={{ '--c': labelColor(l) } as React.CSSProperties}>
+            {l}
+          </span>
+        ))}
+        <PriorityBadge priority={task.priority} />
+        <StatusBadge status={task.status} />
+      </div>
       <div className="mb-3">
         <label htmlFor="d-title" className="form-label small text-secondary">
           Judul

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useLocation, useNavigate } from 'react-router';
 import { login } from '@/api/auth.api';
+import { loginDemo } from '@/api/demo';
 import PasswordInput from '@/components/common/PasswordInput';
 import { loginSchema, type LoginInput } from '@/schemas/auth.schema';
 import { parseError } from '@/utils/errors';
@@ -12,6 +13,7 @@ export default function LoginPage() {
   const location = useLocation();
   const from = (location.state as { from?: string } | null)?.from ?? '/';
   const [formError, setFormError] = useState<string | null>(null);
+  const [demoBusy, setDemoBusy] = useState(false);
   const {
     register,
     handleSubmit,
@@ -39,7 +41,7 @@ export default function LoginPage() {
   return (
     <form onSubmit={(e) => void handleSubmit(onSubmit)(e)} noValidate aria-label="Form masuk">
       <h1 className="h3 fw-bold mb-1">Masuk</h1>
-      <p className="text-secondary mb-4">Selamat datang kembali. Masuk untuk melanjutkan.</p>
+      <p className="text-secondary mb-4">Masuk untuk melanjutkan.</p>
 
       {formError && (
         <div className="alert alert-danger" role="alert">
@@ -67,6 +69,24 @@ export default function LoginPage() {
         {isSubmitting && <span className="spinner-border spinner-border-sm me-2" aria-hidden="true" />}
         Masuk
       </button>
+      {import.meta.env.DEV && (
+        <button
+          type="button"
+          className="btn btn-outline-secondary w-100 mt-2"
+          disabled={isSubmitting || demoBusy}
+          onClick={() => {
+            setFormError(null);
+            setDemoBusy(true);
+            loginDemo()
+              .then(() => navigate(from, { replace: true }))
+              .catch((e: unknown) => setFormError(parseError(e).message))
+              .finally(() => setDemoBusy(false));
+          }}
+        >
+          {demoBusy && <span className="spinner-border spinner-border-sm me-2" aria-hidden="true" />}
+          Masuk sebagai Demo (dev)
+        </button>
+      )}
       <p className="text-center text-secondary mt-4 mb-0">
         Belum punya akun? <Link to="/register">Daftar</Link>
       </p>

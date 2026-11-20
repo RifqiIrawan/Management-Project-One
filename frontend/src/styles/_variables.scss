@@ -1,25 +1,47 @@
-// Override variabel Bootstrap 5.3 (spesifikasi bagian 9.3-9.4).
+// Override variabel Bootstrap 5.3 mengikuti mockup (bersih, terang, kartu berbingkai tipis).
 $font-family-sans-serif: 'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+$font-family-monospace: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+$headings-font-family: 'Space Grotesk Variable', 'Space Grotesk', 'Inter Variable', system-ui, sans-serif;
+$headings-font-weight: 600;
 $font-size-base: 0.875rem;
+$line-height-base: 1.5;
 
-$primary: #6366f1;
-$secondary: #64748b;
-$success: #10b981;
-$warning: #f59e0b;
-$danger: #ef4444;
-$info: #3b82f6;
+$primary: #3b5bdb;
+$secondary: #475467;
+$success: #12b76a;
+$warning: #f79009;
+$danger: #d92d20;
+$info: #3b5bdb;
 
-$body-bg: #f8fafc;
-$body-color: #0f172a;
-$body-secondary-color: #64748b;
+$body-bg: #f5f6f8;
+$body-color: #101828;
+$body-secondary-color: #475467;
 
-$border-radius: 0.5rem;
-$border-radius-lg: 0.75rem;
-$border-color: #e2e8f0;
-$card-border-color: #e2e8f0;
-$card-box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+$border-radius: 0.75rem;
+$border-radius-sm: 0.5rem;
+$border-radius-lg: 1.125rem;
+$border-radius-xl: 1.5rem;
+$border-color: #e4e7ec;
+$card-border-color: #e4e7ec;
+$card-border-radius: 1.125rem;
+$card-box-shadow: none;
 
-$btn-font-weight: 500;
-$input-focus-box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
-$enable-shadows: true;
+$btn-font-weight: 600;
+$btn-border-radius: 0.75rem;
+$btn-padding-y: 0.6rem;
+$btn-padding-x: 1.1rem;
+$input-padding-y: 0.65rem;
+$input-padding-x: 0.9rem;
+$input-border-radius: 0.75rem;
+$input-border-color: #e4e7ec;
+$input-focus-box-shadow: 0 0 0 4px rgba(59, 91, 219, 0.16);
+$input-focus-border-color: #8ea3f5;
+$modal-content-border-radius: 1.5rem;
+$offcanvas-border-width: 0;
+$dropdown-border-radius: 0.75rem;
+$dropdown-box-shadow: 0 12px 32px -8px rgba(16, 24, 40, 0.18);
+$nav-tabs-border-width: 0;
+$breadcrumb-divider: quote('/');
+
+$enable-shadows: false;
 $enable-dark-mode: true;
