@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import MockAdapter from 'axios-mock-adapter';
@@ -18,12 +19,28 @@ const setStatus = (status: 'unknown' | 'guest' | 'authenticated') =>
 
 function renderAt(path: string) {
   const router = createMemoryRouter(routes, { initialEntries: [path] });
-  render(<RouterProvider router={router} />);
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  render(
+    <QueryClientProvider client={qc}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>,
+  );
   return router;
 }
 
 beforeEach(() => {
   mock = new MockAdapter(api);
+  mock.onGet('/dashboard').reply(
+    ...ok({
+      user: { id: 'u1', name: 'Budi Santoso' },
+      today: '2026-11-20',
+      week_end: '2026-11-22',
+      stats: { total_tasks: 0, open_tasks: 0, completed_tasks: 0, in_progress: 0, due_this_week: 0, overdue: 0 },
+      upcoming_tasks: [],
+      recent_projects: [],
+      recent_activities: [],
+    }),
+  );
 });
 afterEach(() => mock.restore());
 
@@ -80,7 +97,12 @@ describe('halaman login', () => {
   it('kembali ke halaman asal setelah login', async () => {
     mock.onPost('/auth/login').reply(() => ok(auth));
     const router = createMemoryRouter(routes, { initialEntries: [{ pathname: '/login', state: { from: '/tidak-ada' } }] });
-    render(<RouterProvider router={router} />);
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  render(
+    <QueryClientProvider client={qc}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>,
+  );
     await userEvent.type(await screen.findByLabelText('Email'), 'b@x.co');
     await userEvent.type(screen.getByLabelText('Password'), 'Passw0rd1');
     await userEvent.click(screen.getByRole('button', { name: 'Masuk' }));

@@ -20,3 +20,14 @@ export interface ApiOk<T> {
   data: T;
   meta?: PageMeta;
 }
+export type Role = S['Role'];
+export type Member = S['Member'];
+export type MemberPreview = S['MemberPreview'];
+export type UserSummary = S['UserSummary'];
+export type ProjectRef = S['ProjectRef'];
+export type Activity = S['Activity'];
+export type Dashboard = S['Dashboard'];
+export type DashboardTask = S['DashboardTask'];
+export type DashboardStats = S['DashboardStats'];
+export type CreateProjectRequest = S['CreateProjectRequest'];
+export type UpdateProjectRequest = S['UpdateProjectRequest'];

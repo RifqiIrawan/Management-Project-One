@@ -29,7 +29,10 @@ Legenda: ✅ selesai · 🚧 sedang dikerjakan · ⏳ belum dimulai
 penanda tangan request `src/utils/signature.ts` yang lulus 17 tes termasuk 9 vektor yang sama dengan Go dan PowerShell; `tsc` dan `vite build` bersih).
 **F1b selesai** (Bootstrap SCSS + tema light/dark, klien API Axios dengan refresh token dan tanda tangan, login/register dengan validasi, route guard, kerangka aplikasi: sidebar, topbar, breadcrumb, 404).
 60 tes lulus; tes live 6/6 lulus terhadap backend `API_SIGNATURE=enforce` (`LIVE_API_URL=http://localhost:6990/api/v1 npx vitest run src/api/live.test.ts`); `tsc` dan `vite build` bersih.
-Berikutnya **F2**: Dashboard, daftar proyek, pengaturan proyek, anggota.
+**F2 selesai** (dashboard: statistik, tugas jatuh tempo, aktivitas, proyek terbaru; daftar proyek dengan cari, arsip, favorit; buat proyek dengan saran kode; halaman proyek dengan tab Ringkasan/Anggota/Pengaturan; pengaturan owner: edit, arsip, hapus dengan ketik nama; anggota: undang dengan saran email, ubah peran, keluarkan, keluar sendiri; breadcrumb memakai nama proyek).
+86 tes lulus (26 baru untuk F2); tes live F2 7/7 dan F1b 6/6 terhadap backend `API_SIGNATURE=enforce`; `tsc` dan `vite build` bersih.
+Catatan: login/register dibatasi 5/menit/IP, jalankan dua file live berurutan (bukan paralel) agar tidak kena 429.
+Berikutnya **F3**: Kanban (drag & drop), tabel tugas, filter, panel detail tugas, komentar & aktivitas. Halaman proyek sudah menyiapkan tempatnya (tab Ringkasan memuat catatan "hadir di F3").
 Backend (fitur 0-9) sudah selesai dan kontrak API terkunci di `backend/docs/openapi.yaml`.
 
 Rencana per tahap (tiap tahap diuji dan di-commit sendiri):

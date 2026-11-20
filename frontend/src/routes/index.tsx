@@ -5,6 +5,11 @@ import LoginPage from '@/pages/auth/LoginPage';
 import RegisterPage from '@/pages/auth/RegisterPage';
 import DashboardPage from '@/pages/dashboard/DashboardPage';
 import NotFoundPage from '@/pages/NotFoundPage';
+import ProjectLayout from '@/pages/projects/ProjectLayout';
+import ProjectMembersPage from '@/pages/projects/ProjectMembersPage';
+import ProjectOverviewPage from '@/pages/projects/ProjectOverviewPage';
+import ProjectSettingsPage from '@/pages/projects/ProjectSettingsPage';
+import ProjectsPage from '@/pages/projects/ProjectsPage';
 import GuestRoute from './GuestRoute';
 import ProtectedRoute from './ProtectedRoute';
 
@@ -26,7 +31,20 @@ export const routes: RouteObject[] = [
     children: [
       {
         element: <AppLayout />,
-        children: [{ path: '/', element: <DashboardPage /> }, { path: '*', element: <NotFoundPage /> }],
+        children: [
+          { path: '/', element: <DashboardPage /> },
+          { path: '/projects', element: <ProjectsPage /> },
+          {
+            path: '/projects/:projectId',
+            element: <ProjectLayout />,
+            children: [
+              { index: true, element: <ProjectOverviewPage /> },
+              { path: 'members', element: <ProjectMembersPage /> },
+              { path: 'settings', element: <ProjectSettingsPage /> },
+            ],
+          },
+          { path: '*', element: <NotFoundPage /> },
+        ],
       },
     ],
   },
