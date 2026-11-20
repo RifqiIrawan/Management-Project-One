@@ -1,0 +1,25 @@
+// Override variabel Bootstrap 5.3 (spesifikasi bagian 9.3-9.4).
+$font-family-sans-serif: 'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+$font-size-base: 0.875rem;
+
+$primary: #6366f1;
+$secondary: #64748b;
+$success: #10b981;
+$warning: #f59e0b;
+$danger: #ef4444;
+$info: #3b82f6;
+
+$body-bg: #f8fafc;
+$body-color: #0f172a;
+$body-secondary-color: #64748b;
+
+$border-radius: 0.5rem;
+$border-radius-lg: 0.75rem;
+$border-color: #e2e8f0;
+$card-border-color: #e2e8f0;
+$card-box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+
+$btn-font-weight: 500;
+$input-focus-box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+$enable-shadows: true;
+$enable-dark-mode: true;

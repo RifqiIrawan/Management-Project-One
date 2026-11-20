@@ -1,7 +1,13 @@
-import 'bootstrap/dist/css/bootstrap.min.css';
+import '@fontsource-variable/inter';
+import 'bootstrap-icons/font/bootstrap-icons.css';
+import './styles/main.scss';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
+import { applyTheme } from './store/themeStore';
+import { useThemeStore } from './store/themeStore';
+
+applyTheme(useThemeStore.getState().mode);
 
 const root = document.getElementById('root');
 if (!root) throw new Error('#root tidak ditemukan');

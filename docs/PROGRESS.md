@@ -27,7 +27,9 @@ Legenda: ✅ selesai · 🚧 sedang dikerjakan · ⏳ belum dimulai
 
 🚧 **F1a selesai** (fondasi: Vite 8 + React 19 + TypeScript strict, port 6969, tipe API dihasilkan dari `openapi.yaml` lewat `npm run gen:api`,
 penanda tangan request `src/utils/signature.ts` yang lulus 17 tes termasuk 9 vektor yang sama dengan Go dan PowerShell; `tsc` dan `vite build` bersih).
-Berikutnya **F1b**: Bootstrap SCSS + tema, klien API (Axios + refresh token + tanda tangan), login/register, route guard, kerangka aplikasi.
+**F1b selesai** (Bootstrap SCSS + tema light/dark, klien API Axios dengan refresh token dan tanda tangan, login/register dengan validasi, route guard, kerangka aplikasi: sidebar, topbar, breadcrumb, 404).
+60 tes lulus; tes live 6/6 lulus terhadap backend `API_SIGNATURE=enforce` (`LIVE_API_URL=http://localhost:6990/api/v1 npx vitest run src/api/live.test.ts`); `tsc` dan `vite build` bersih.
+Berikutnya **F2**: Dashboard, daftar proyek, pengaturan proyek, anggota.
 Backend (fitur 0-9) sudah selesai dan kontrak API terkunci di `backend/docs/openapi.yaml`.
 
 Rencana per tahap (tiap tahap diuji dan di-commit sendiri):

@@ -15,6 +15,8 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
+    // origin sama dengan dev server agar tes live lolos CORS backend (CORS_ORIGINS=http://localhost:6969)
+    environmentOptions: { jsdom: { url: 'http://localhost:6969' } },
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
     css: false,
